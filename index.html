@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Podcast Feed</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 60px auto; padding: 0 20px; color: #222; }
+    h1 { font-size: 1.6rem; }
+    .feed-url { background: #f5f5f5; padding: 12px 16px; border-radius: 8px; font-family: monospace; word-break: break-all; font-size: 0.9rem; }
+    .badge { display: inline-block; padding: 6px 14px; border-radius: 20px; text-decoration: none; font-size: 0.9rem; font-weight: 600; margin: 8px 8px 8px 0; }
+    .spotify { background: #1DB954; color: #fff; }
+    .apple { background: #872ec4; color: #fff; }
+    .copy-btn { cursor: pointer; background: #333; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; }
+    .copy-btn:hover { background: #555; }
+    p { line-height: 1.6; color: #555; }
+  </style>
+</head>
+<body>
+  <h1>🎙 Podcast Feed</h1>
+  <p>This podcast is automatically generated from a YouTube playlist. New episodes are synced weekly.</p>
+
+  <h2>Subscribe</h2>
+  <div class="feed-url" id="feed-url"></div>
+  <br />
+  <button class="copy-btn" onclick="copyFeed()">Copy RSS URL</button>
+
+  <br /><br />
+  <a class="badge spotify" href="https://podcasters.spotify.com/pod/show" target="_blank">Add to Spotify</a>
+  <a class="badge apple" href="https://podcastsconnect.apple.com/" target="_blank">Add to Apple Podcasts</a>
+
+  <script>
+    const feedUrl = window.location.origin + window.location.pathname.replace(/\/?$/, '/') + 'feed.xml';
+    document.getElementById('feed-url').textContent = feedUrl;
+    function copyFeed() {
+      navigator.clipboard.writeText(feedUrl).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy RSS URL', 2000);
+      });
+    }
+  </script>
+</body>
+</html>
