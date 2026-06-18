@@ -1,0 +1,73 @@
+name: Sync YouTube Playlist to Podcast
+
+on:
+  # Run every Wednesday at 6pm AEST (10am Wednesday UTC)
+  schedule:
+    - cron: '0 10 * * 3'
+
+  # Allow manual trigger from the Actions tab
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual run (optional)'
+        required: false
+        default: 'Manual sync'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120  # 2hr max for large playlists
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install yt-dlp
+        run: |
+          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          sudo chmod a+rx /usr/local/bin/yt-dlp
+          yt-dlp --version
+
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version | head -1
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Run sync
+        env:
+          YOUTUBE_PLAYLIST_URL: ${{ secrets.YOUTUBE_PLAYLIST_URL }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.PODCAST_GITHUB_TOKEN }}
+          GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
+          GITHUB_REPO: ${{ github.event.repository.name }}
+          GITHUB_BRANCH: main
+          PODCAST_TITLE: ${{ secrets.PODCAST_TITLE }}
+          PODCAST_DESCRIPTION: ${{ secrets.PODCAST_DESCRIPTION }}
+          PODCAST_AUTHOR: ${{ secrets.PODCAST_AUTHOR }}
+          PODCAST_EMAIL: ${{ secrets.PODCAST_EMAIL }}
+          PODCAST_LANGUAGE: ${{ secrets.PODCAST_LANGUAGE }}
+          PODCAST_CATEGORY: ${{ secrets.PODCAST_CATEGORY }}
+          PODCAST_SUBCATEGORY: ${{ secrets.PODCAST_SUBCATEGORY }}
+          PODCAST_IMAGE_URL: ${{ secrets.PODCAST_IMAGE_URL }}
+          PODCAST_EXPLICIT: ${{ secrets.PODCAST_EXPLICIT }}
+          AUDIO_BITRATE: ${{ secrets.AUDIO_BITRATE }}
+          MAX_DURATION_MINUTES: ${{ secrets.MAX_DURATION_MINUTES }}
+        run: npm start
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-logs-${{ github.run_id }}
+          path: tmp/
+          retention-days: 7
