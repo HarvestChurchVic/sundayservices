@@ -41,7 +41,14 @@ export async function downloadAudio(video, tmpDir) {
     // Retry on transient errors
     '--retries', '3',
     '--fragment-retries', '3',
+    // Avoid hammering YouTube too fast (reduces bot-detection risk)
+    '--sleep-requests', '1',
   ];
+
+  // Use cookies to avoid "Sign in to confirm you're not a bot" blocks on CI runners
+  if (process.env.YOUTUBE_COOKIES_FILE && fs.existsSync(process.env.YOUTUBE_COOKIES_FILE)) {
+    args.push('--cookies', process.env.YOUTUBE_COOKIES_FILE);
+  }
 
   log('info', `Downloading audio for video ${video.id} at ${bitrate}kbps...`);
 
