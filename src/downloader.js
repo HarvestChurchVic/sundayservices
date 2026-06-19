@@ -30,6 +30,8 @@ export async function downloadAudio(video, tmpDir) {
     '--extract-audio',
     '--audio-format', 'mp3',
     '--audio-quality', bitrate + 'K',
+    // Be flexible about source format: prefer audio-only, fall back to best available
+    '--format', 'bestaudio/best',
     '--output', outputTemplate,
     '--no-playlist',
     '--quiet',
