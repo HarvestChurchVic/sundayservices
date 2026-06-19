@@ -34,7 +34,6 @@ export async function downloadAudio(video, tmpDir) {
     '--format', 'bestaudio/best',
     '--output', outputTemplate,
     '--no-playlist',
-    '--quiet',
     '--no-warnings',
     // Embed thumbnail as cover art
     '--embed-thumbnail',
@@ -59,11 +58,14 @@ export async function downloadAudio(video, tmpDir) {
   log('info', `Downloading audio for video ${video.id} at ${bitrate}kbps...`);
 
   try {
-    await execFileAsync('yt-dlp', args, {
+    const result = await execFileAsync('yt-dlp', args, {
       timeout: 10 * 60 * 1000, // 10 minute timeout
     });
+    if (result.stdout) log('info', `yt-dlp stdout: ${result.stdout.slice(0, 2000)}`);
   } catch (err) {
-    throw new Error(`yt-dlp failed for ${video.id}: ${err.message}`);
+    // Surface full stdout/stderr for diagnosis rather than just the generic message
+    const details = [err.stdout, err.stderr].filter(Boolean).join('\n').slice(0, 3000);
+    throw new Error(`yt-dlp failed for ${video.id}: ${err.message}\n--- DETAILS ---\n${details}`);
   }
 
   if (!fs.existsSync(expectedOutput)) {
