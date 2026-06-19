@@ -1,9 +1,9 @@
 name: Sync YouTube Playlist to Podcast
 
 on:
-  # Run every Wednesday at 6pm AEST (10am Wednesday UTC)
+  # Run every Monday at 6am AEST (8pm Sunday UTC)
   schedule:
-    - cron: '0 10 * * 3'
+    - cron: '0 20 * * 0'
 
   # Allow manual trigger from the Actions tab
   workflow_dispatch:
@@ -42,6 +42,12 @@ jobs:
       - name: Install Node dependencies
         run: npm install
 
+      - name: Restore YouTube cookies
+        run: |
+          mkdir -p tmp
+          echo "${{ secrets.YOUTUBE_COOKIES_B64 }}" | base64 --decode > tmp/cookies.txt
+          echo "Cookie file size: $(wc -l < tmp/cookies.txt) lines"
+
       - name: Run sync
         env:
           YOUTUBE_PLAYLIST_URL: ${{ secrets.YOUTUBE_PLAYLIST_URL }}
@@ -61,6 +67,7 @@ jobs:
           PODCAST_EXPLICIT: ${{ secrets.PODCAST_EXPLICIT }}
           AUDIO_BITRATE: ${{ secrets.AUDIO_BITRATE }}
           MAX_DURATION_MINUTES: ${{ secrets.MAX_DURATION_MINUTES }}
+          YOUTUBE_COOKIES_FILE: tmp/cookies.txt
         run: npm start
 
       - name: Upload logs on failure
