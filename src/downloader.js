@@ -45,6 +45,10 @@ export async function downloadAudio(video, tmpDir) {
     '--fragment-retries', '3',
     // Avoid hammering YouTube too fast (reduces bot-detection risk)
     '--sleep-requests', '1',
+    // Force the Android client for format extraction — the default web client
+    // is currently affected by YouTube's SABR streaming rollout, which causes
+    // "Requested format is not available" even when cookies are valid
+    '--extractor-args', 'youtube:player_client=android,web',
   ];
 
   // Use cookies to avoid "Sign in to confirm you're not a bot" blocks on CI runners
