@@ -61,14 +61,27 @@ jobs:
           PODCAST_EXPLICIT: "false"
           PODCAST_WEBSITE: ${{ secrets.PODCAST_WEBSITE }}
         run: |
+          set +e
           python pipeline.py "${{ github.event.inputs.youtube_url }}" \
             --title "${{ github.event.inputs.title }}" \
             --speaker "${{ github.event.inputs.speaker }}" \
-            --sermon-date "${{ github.event.inputs.sermon_date }}"
+            --sermon-date "${{ github.event.inputs.sermon_date }}" 2>&1 | tee pipeline_debug.log
+          exit ${PIPESTATUS[0]}
+        shell: bash
+
+      - name: Commit debug log
+        if: always()
+        run: |
+          git config user.name "sermon-pipeline-bot"
+          git config user.email "actions@github.com"
+          git add pipeline_debug.log
+          git diff --staged --quiet || git commit -m "Debug log from run ${{ github.run_id }}"
+          git push
 
       # feed_items.json needs to persist between runs so the RSS feed keeps
       # accumulating episodes rather than resetting each time
       - name: Commit updated episode log
+        if: success()
         run: |
           git config user.name "sermon-pipeline-bot"
           git config user.email "actions@github.com"
