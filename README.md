@@ -60,39 +60,36 @@ found, it's used as that episode's artwork in the feed; if not, the episode
 falls back to the podcast's default cover art. This only applies when using
 the manual R2 upload path (source_file), not the yt-dlp path.
 
-## Automatic triggering via SharePoint (for the whole team)
+## Automatic triggering via web form (for the whole team)
 
-Instead of running the workflow by hand each time, anyone on the team can
-just drop a file into a designated SharePoint folder, named like:
+Instead of running the workflow by hand or using GitHub directly, anyone on
+the team can use a simple web form (`web-trigger/sermon-upload-form.html`) —
+fill in the title, speaker, date, pick the video file (and optionally a
+thumbnail), enter the shared passphrase, and click **Upload & Process**. The
+form uploads the files straight to R2 from the browser and triggers the
+pipeline automatically — no GitHub access needed at all.
 
-    2026-07-25_Strong-and-Courageous_Andrew-Cartledge.mp4
+**How it works:** a small Cloudflare Worker (`web-trigger/worker.js`) issues
+temporary upload permissions directly to R2 (so large video files never pass
+through the Worker itself, avoiding Cloudflare's 100MB request body limit),
+then triggers the "Process Sermon" GitHub Action once the upload completes.
 
-(date, then title with dashes instead of spaces, then speaker with dashes,
-same pattern every time). An hourly scheduled GitHub Action
-(`.github/workflows/watch_sharepoint.yml`) checks that folder, and if it
-finds a new file matching that pattern, it automatically copies it to R2 and
-runs the full pipeline — no one needs to touch GitHub Actions at all.
-
-To also give that sermon its own thumbnail, drop a PNG in the same
-SharePoint folder with the exact same filename (just `.png` instead of
-`.mp4`) — the watcher picks it up automatically and copies it to the right
-place in R2.
-
-**One-time setup required** (needs your Microsoft 365 admin):
-1. Register an app in Entra ID (Azure AD) → App registrations → New
-   registration
-2. Note the Application (client) ID and Directory (tenant) ID
-3. Certificates & secrets → New client secret → copy the value
-4. API permissions → Add a permission → Microsoft Graph → Application
-   permissions → add `Sites.Read.All` → Grant admin consent
-5. Add `MS_TENANT_ID`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`,
-   `SHAREPOINT_HOSTNAME`, `SHAREPOINT_SITE_PATH`, and
-   `SHAREPOINT_FOLDER_PATH` as repo secrets (see `config.example.env` for
-   the exact format of the site/folder values)
-
-Files that don't match the naming convention are skipped and logged rather
-than causing an error — a stray file dropped in the folder won't break
-anything.
+**One-time setup:**
+1. In the Cloudflare dashboard: Workers & Pages → Create → paste in the
+   contents of `web-trigger/worker.js` → Deploy
+2. In that Worker's Settings → Variables, add these as secrets:
+   `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+   `R2_BUCKET_NAME` (same values as the repo secrets), `GITHUB_TOKEN` (the
+   same fine-grained PAT used for this repo — needs Contents, Workflows, and
+   Actions permissions), `FORM_PASSPHRASE` (any passphrase you choose — the
+   form won't work without it, so only people you've shared it with can
+   trigger a run), and `ALLOWED_ORIGIN` (your website's URL, e.g.
+   `https://harvestchurch.org.au`)
+3. Copy the Worker's URL (shown after deploying, looks like
+   `https://sermon-upload.<your-subdomain>.workers.dev`) into the
+   `WORKER_URL` constant near the top of `sermon-upload-form.html`
+4. Embed or upload `sermon-upload-form.html` as a hidden page on your
+   website, and share the passphrase with whoever needs to use it
 
 ## First time only: submitting the feed
 

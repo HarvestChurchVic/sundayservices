@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Process a Sermon</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 560px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; }
+  label { display: block; margin-top: 16px; font-weight: 600; font-size: 0.9rem; }
+  input[type="text"], input[type="date"], input[type="password"] {
+    width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box;
+    border: 1px solid #ccc; border-radius: 4px; font-size: 1rem;
+  }
+  input[type="file"] { margin-top: 6px; }
+  button {
+    margin-top: 24px; padding: 12px 24px; background: #2b6cb0; color: white;
+    border: none; border-radius: 4px; font-size: 1rem; cursor: pointer;
+  }
+  button:disabled { background: #999; cursor: not-allowed; }
+  #status { margin-top: 20px; padding: 12px; border-radius: 4px; display: none; }
+  #status.info { background: #ebf8ff; color: #2c5282; display: block; }
+  #status.success { background: #f0fff4; color: #22543d; display: block; }
+  #status.error { background: #fff5f5; color: #822727; display: block; }
+  .hint { font-weight: normal; color: #666; font-size: 0.8rem; }
+</style>
+</head>
+<body>
+
+<h1>Process a Sermon</h1>
+
+<form id="sermonForm">
+  <label>Sermon title
+    <input type="text" id="title" required>
+  </label>
+
+  <label>Speaker
+    <input type="text" id="speaker" required value="Andrew Cartledge">
+  </label>
+
+  <label>Sermon date
+    <input type="date" id="sermonDate" required>
+  </label>
+
+  <label>YouTube link <span class="hint">(optional, if already published)</span>
+    <input type="text" id="youtubeUrl">
+  </label>
+
+  <label>Sermon video file
+    <input type="file" id="videoFile" accept="video/*" required>
+  </label>
+
+  <label>Thumbnail image <span class="hint">(optional, PNG recommended)</span>
+    <input type="file" id="thumbnailFile" accept="image/png,image/jpeg">
+  </label>
+
+  <label>Passphrase
+    <input type="password" id="passphrase" required>
+  </label>
+
+  <button type="submit" id="submitBtn">Upload &amp; Process</button>
+</form>
+
+<div id="status"></div>
+
+<script>
+// Set this to your deployed Worker's URL
+const WORKER_URL = "https://your-worker-subdomain.your-account.workers.dev";
+
+const form = document.getElementById("sermonForm");
+const statusDiv = document.getElementById("status");
+const submitBtn = document.getElementById("submitBtn");
+
+function setStatus(message, type) {
+  statusDiv.textContent = message;
+  statusDiv.className = type;
+}
+
+async function getPresignedUrl(file) {
+  const resp = await fetch(`${WORKER_URL}/presign`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: file.name, contentType: file.type }),
+  });
+  if (!resp.ok) throw new Error(`Failed to get upload URL: ${await resp.text()}`);
+  return resp.json();
+}
+
+async function uploadFile(file, uploadUrl) {
+  const resp = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": file.type || "application/octet-stream" },
+    body: file,
+  });
+  if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  submitBtn.disabled = true;
+
+  const title = document.getElementById("title").value;
+  const speaker = document.getElementById("speaker").value;
+  const sermonDate = document.getElementById("sermonDate").value;
+  const youtubeUrl = document.getElementById("youtubeUrl").value;
+  const videoFile = document.getElementById("videoFile").files[0];
+  const thumbnailFile = document.getElementById("thumbnailFile").files[0];
+  const passphrase = document.getElementById("passphrase").value;
+
+  try {
+    setStatus("Requesting upload link for video...", "info");
+    const { uploadUrl: videoUploadUrl, key: videoKey } = await getPresignedUrl(videoFile);
+
+    setStatus(`Uploading video (${(videoFile.size / 1e6).toFixed(0)} MB)... this may take a while.`, "info");
+    await uploadFile(videoFile, videoUploadUrl);
+
+    let thumbnailKey = null;
+    if (thumbnailFile) {
+      setStatus("Uploading thumbnail...", "info");
+      const { uploadUrl: thumbUploadUrl, key: thumbKey } = await getPresignedUrl(thumbnailFile);
+      await uploadFile(thumbnailFile, thumbUploadUrl);
+      thumbnailKey = thumbKey;
+    }
+
+    setStatus("Starting the processing pipeline...", "info");
+    const triggerResp = await fetch(`${WORKER_URL}/trigger`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title, speaker, sermonDate, youtubeUrl,
+        videoKey, thumbnailKey, passphrase,
+      }),
+    });
+
+    if (!triggerResp.ok) {
+      throw new Error(`Failed to start processing: ${await triggerResp.text()}`);
+    }
+
+    setStatus("Success! Processing has started — you'll get an email when it's done (usually 5-15 minutes).", "success");
+    form.reset();
+  } catch (err) {
+    setStatus(`Error: ${err.message}`, "error");
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>
