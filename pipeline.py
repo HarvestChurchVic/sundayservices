@@ -1,0 +1,310 @@
+#!/usr/bin/env python3
+"""
+Harvest Church sermon repurposing pipeline.
+
+Takes the URL of a finished, edited YouTube clip (intro/outro already added
+by hand) and does everything from there automatically:
+
+  1. Download the MP4
+  2. Extract MP3 audio
+  3. Transcribe with Whisper (replaces manual tactiq.io step)
+  4. Generate a YouTube blurb with the Claude API (replaces manual copy/paste
+     into Claude chat)
+  5. Upload MP4 + MP3 to Cloudflare R2
+  6. Add a new <item> to the podcast RSS feed and re-upload it
+  7. Email you the blurb, YouTube link, and file locations, so you can
+     finish the manual steps (YouTube details, Planning Center entry)
+
+Usage:
+    python pipeline.py "https://youtu.be/XXXXXXXXX" \
+        --title "The Reality of Grace" \
+        --speaker "Andrew Cartledge" \
+        --sermon-date 2026-07-19
+
+Requires config.env in the same folder (copy config.example.env and fill it in).
+"""
+
+import argparse
+import mimetypes
+import os
+import smtplib
+import subprocess
+import sys
+from datetime import datetime, timezone
+from email.mime.text import MIMEText
+from pathlib import Path
+
+import boto3
+from botocore.client import Config as BotoConfig
+from dotenv import load_dotenv
+from feedgen.feed import FeedGenerator
+
+WORKDIR = Path(__file__).parent
+DOWNLOADS = WORKDIR / "downloads"
+FEED_STATE_FILE = WORKDIR / "feed_items.json"  # local record of published episodes
+
+load_dotenv(WORKDIR / "config.env")
+
+
+def env(key, required=True, default=None):
+    val = os.environ.get(key, default)
+    if required and not val:
+        sys.exit(f"Missing required config value: {key} (check config.env)")
+    return val
+
+
+# ---------------------------------------------------------------------------
+# Step 1-2: download video, extract audio
+# ---------------------------------------------------------------------------
+
+def download_and_extract(youtube_url: str, slug: str) -> Path:
+    """Downloads the MP4, extracts its audio to MP3, deletes the MP4, and
+    returns the MP3 path. The MP4 is never uploaded or kept — YouTube is
+    already the permanent host for the video itself."""
+    DOWNLOADS.mkdir(exist_ok=True)
+    mp4_path = DOWNLOADS / f"{slug}.mp4"
+    mp3_path = DOWNLOADS / f"{slug}.mp3"
+
+    print("Downloading MP4 from YouTube...")
+    subprocess.run(
+        ["yt-dlp", "-f", "mp4", "-o", str(mp4_path), youtube_url],
+        check=True,
+    )
+
+    print("Extracting MP3 audio...")
+    subprocess.run(
+        [
+            "ffmpeg", "-y", "-i", str(mp4_path),
+            "-vn", "-acodec", "libmp3lame", "-q:a", "2",
+            str(mp3_path),
+        ],
+        check=True,
+        capture_output=True,
+    )
+
+    print("Deleting MP4 (YouTube already hosts the video permanently)...")
+    mp4_path.unlink()
+
+    return mp3_path
+
+
+# ---------------------------------------------------------------------------
+# Step 3: transcription (local Whisper — replaces tactiq.io)
+# ---------------------------------------------------------------------------
+
+def transcribe(mp3_path: Path) -> str:
+    from faster_whisper import WhisperModel
+
+    print("Transcribing (this can take a few minutes)...")
+    model_size = env("WHISPER_MODEL_SIZE", default="small")
+    model = WhisperModel(model_size, device="cpu", compute_type="int8")
+    segments, _ = model.transcribe(str(mp3_path))
+    transcript = " ".join(segment.text.strip() for segment in segments)
+    return transcript
+
+
+# ---------------------------------------------------------------------------
+# Step 4: blurb generation via Claude API (replaces manual paste-into-chat)
+# ---------------------------------------------------------------------------
+
+BLURB_PROMPT_TEMPLATE = """You are writing a YouTube video description / podcast \
+episode blurb for a Sunday sermon from Harvest Church, an Australian Christian \
+Churches multi-campus church in the Wimmera region of Victoria.
+
+Sermon title: {title}
+Speaker: {speaker}
+
+Below is the raw transcript of the sermon. Write a blurb of 3-4 short paragraphs \
+that:
+- Summarises the core message and key scripture references
+- Uses a warm, direct tone (not generic "inspirational" church-marketing language)
+- Avoids rule-of-three constructions, abstract noun stacking, and symmetrical \
+sentence repetition
+- Ends with a one-line call to action inviting people to join a Sunday service
+
+Do not use em dashes anywhere. Use commas, colons, or separate sentences instead.
+
+Transcript:
+{transcript}
+"""
+
+
+def generate_blurb(transcript: str, title: str, speaker: str) -> str:
+    import anthropic
+
+    print("Generating blurb via Claude API...")
+    client = anthropic.Anthropic(api_key=env("ANTHROPIC_API_KEY"))
+    prompt = BLURB_PROMPT_TEMPLATE.format(
+        title=title, speaker=speaker, transcript=transcript
+    )
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1000,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return message.content[0].text.strip()
+
+
+# ---------------------------------------------------------------------------
+# Step 5: upload to Cloudflare R2
+# ---------------------------------------------------------------------------
+
+def get_r2_client():
+    account_id = env("R2_ACCOUNT_ID")
+    return boto3.client(
+        "s3",
+        endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
+        aws_access_key_id=env("R2_ACCESS_KEY_ID"),
+        aws_secret_access_key=env("R2_SECRET_ACCESS_KEY"),
+        config=BotoConfig(signature_version="s3v4"),
+        region_name="auto",
+    )
+
+
+def upload_to_r2(local_path: Path, key: str) -> str:
+    client = get_r2_client()
+    bucket = env("R2_BUCKET_NAME")
+    content_type = mimetypes.guess_type(str(local_path))[0] or "application/octet-stream"
+    print(f"Uploading {local_path.name} to R2...")
+    client.upload_file(
+        str(local_path), bucket, key,
+        ExtraArgs={"ContentType": content_type, "ACL": "public-read"},
+    )
+    base_url = env("R2_PUBLIC_BASE_URL").rstrip("/")
+    return f"{base_url}/{key}"
+
+
+# ---------------------------------------------------------------------------
+# Step 6: RSS feed — build from scratch each run using the local episode log
+# ---------------------------------------------------------------------------
+
+import json
+
+
+def load_episode_log() -> list[dict]:
+    if FEED_STATE_FILE.exists():
+        return json.loads(FEED_STATE_FILE.read_text())
+    return []
+
+
+def save_episode_log(episodes: list[dict]) -> None:
+    FEED_STATE_FILE.write_text(json.dumps(episodes, indent=2))
+
+
+def build_and_upload_feed(episodes: list[dict]) -> str:
+    fg = FeedGenerator()
+    fg.load_extension("podcast")
+    fg.title(env("PODCAST_TITLE"))
+    fg.author({"name": env("PODCAST_AUTHOR")})
+    fg.description(env("PODCAST_DESCRIPTION"))
+    fg.link(href=env("PODCAST_WEBSITE"), rel="alternate")
+    fg.language(env("PODCAST_LANGUAGE", default="en-au"))
+    fg.podcast.itunes_image(env("PODCAST_IMAGE_URL"))
+    fg.podcast.itunes_category(env("PODCAST_CATEGORY", default="Religion & Spirituality"))
+    fg.podcast.itunes_explicit(
+        "yes" if env("PODCAST_EXPLICIT", default="false").lower() == "true" else "no"
+    )
+
+    for ep in sorted(episodes, key=lambda e: e["pub_date"]):
+        fe = fg.add_entry()
+        fe.id(ep["mp3_url"])
+        fe.title(ep["title"])
+        fe.description(ep["blurb"])
+        fe.enclosure(ep["mp3_url"], str(ep["filesize"]), "audio/mpeg")
+        fe.pubDate(ep["pub_date"])
+        fe.podcast.itunes_author(ep.get("speaker", env("PODCAST_AUTHOR")))
+
+    feed_path = WORKDIR / "feed.xml"
+    fg.rss_file(str(feed_path))
+
+    feed_url = upload_to_r2(feed_path, "feed.xml")
+    return feed_url
+
+
+# ---------------------------------------------------------------------------
+# Step 7: email notification
+# ---------------------------------------------------------------------------
+
+def send_notification_email(context: dict) -> None:
+    print("Sending notification email...")
+    body = f"""New sermon processed and hosted.
+
+Title: {context['title']}
+Speaker: {context['speaker']}
+Sermon date: {context['sermon_date']}
+
+YouTube clip: {context['youtube_url']}
+Hosted MP3: {context['mp3_url']}
+Podcast RSS feed: {context['feed_url']}
+
+--- Blurb ---
+{context['blurb']}
+
+Remaining manual steps:
+- Update the YouTube video title, speaker and description with the blurb above
+- Create the Planning Center sermon entry (title, speaker, blurb, date, media link)
+"""
+    msg = MIMEText(body)
+    msg["Subject"] = f"Sermon processed: {context['title']}"
+    msg["From"] = env("EMAIL_FROM")
+    msg["To"] = env("EMAIL_TO")
+
+    with smtplib.SMTP(env("SMTP_HOST"), int(env("SMTP_PORT", default="587"))) as server:
+        server.starttls()
+        server.login(env("SMTP_USERNAME"), env("SMTP_PASSWORD"))
+        server.send_message(msg)
+
+
+# ---------------------------------------------------------------------------
+# Orchestration
+# ---------------------------------------------------------------------------
+
+def slugify(text: str) -> str:
+    return "-".join(text.lower().split())[:60]
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Sermon repurposing pipeline")
+    parser.add_argument("youtube_url", help="URL of the finished, edited YouTube clip")
+    parser.add_argument("--title", required=True, help="Sermon title")
+    parser.add_argument("--speaker", required=True, help="Speaker name")
+    parser.add_argument("--sermon-date", required=True, help="Sunday date, YYYY-MM-DD")
+    args = parser.parse_args()
+
+    slug = f"{args.sermon_date}-{slugify(args.title)}"
+
+    mp3_path = download_and_extract(args.youtube_url, slug)
+    transcript = transcribe(mp3_path)
+    blurb = generate_blurb(transcript, args.title, args.speaker)
+
+    mp3_url = upload_to_r2(mp3_path, f"audio/{slug}.mp3")
+
+    episodes = load_episode_log()
+    episodes.append({
+        "title": args.title,
+        "speaker": args.speaker,
+        "blurb": blurb,
+        "mp3_url": mp3_url,
+        "filesize": mp3_path.stat().st_size,
+        "pub_date": datetime.strptime(args.sermon_date, "%Y-%m-%d")
+            .replace(tzinfo=timezone.utc).isoformat(),
+    })
+    save_episode_log(episodes)
+    feed_url = build_and_upload_feed(episodes)
+
+    send_notification_email({
+        "title": args.title,
+        "speaker": args.speaker,
+        "sermon_date": args.sermon_date,
+        "youtube_url": args.youtube_url,
+        "mp3_url": mp3_url,
+        "feed_url": feed_url,
+        "blurb": blurb,
+    })
+
+    print("\nDone.")
+    print(f"Feed URL (submit this once to Apple Podcasts Connect / Spotify for Podcasters): {feed_url}")
+
+
+if __name__ == "__main__":
+    main()

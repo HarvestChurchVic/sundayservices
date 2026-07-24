@@ -1,0 +1,5 @@
+config.env
+downloads/
+feed.xml
+__pycache__/
+*.pyc

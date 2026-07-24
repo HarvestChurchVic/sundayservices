@@ -1,0 +1,6 @@
+yt-dlp
+faster-whisper
+feedgen
+boto3
+anthropic
+python-dotenv
