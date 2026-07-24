@@ -284,7 +284,7 @@ Title: {context['title']}
 Speaker: {context['speaker']}
 Sermon date: {context['sermon_date']}
 
-YouTube clip: {context['youtube_url']}
+YouTube clip: {context['youtube_url'] if context['youtube_url'] else 'Not yet published — add the YouTube link when available'}
 Hosted MP3: {context['mp3_url']}
 Podcast RSS feed: {context['feed_url']}
 Episode thumbnail: {context['image_url'] if context.get('image_url') else 'None found — using default podcast artwork. Upload images/<filename>.png to R2 alongside the video to set one.'}

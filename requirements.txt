@@ -4,3 +4,5 @@ feedgen
 boto3
 anthropic
 python-dotenv
+msal
+requests
