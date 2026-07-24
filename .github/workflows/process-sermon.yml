@@ -87,14 +87,11 @@ jobs:
           PODCAST_WEBSITE: ${{ secrets.PODCAST_WEBSITE }}
         run: |
           set +e
-          EXTRA_ARGS=""
-          if [ -n "${{ github.event.inputs.source_file }}" ]; then
-            EXTRA_ARGS="--source-file ${{ github.event.inputs.source_file }}"
-          fi
           python pipeline.py "${{ github.event.inputs.youtube_url }}" \
             --title "${{ github.event.inputs.title }}" \
             --speaker "${{ github.event.inputs.speaker }}" \
-            --sermon-date "${{ github.event.inputs.sermon_date }}" $EXTRA_ARGS 2>&1 | tee pipeline_debug.log
+            --sermon-date "${{ github.event.inputs.sermon_date }}" \
+            --source-file "${{ github.event.inputs.source_file }}" 2>&1 | tee pipeline_debug.log
           exit ${PIPESTATUS[0]}
         shell: bash
 
