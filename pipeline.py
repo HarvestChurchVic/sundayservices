@@ -121,22 +121,36 @@ def transcribe(mp3_path: Path) -> str:
 # Step 4: blurb generation via Claude API (replaces manual paste-into-chat)
 # ---------------------------------------------------------------------------
 
-BLURB_PROMPT_TEMPLATE = """You are writing a YouTube video description / podcast \
-episode blurb for a Sunday sermon from Harvest Church, an Australian Christian \
-Churches multi-campus church in the Wimmera region of Victoria.
+BLURB_PROMPT_TEMPLATE = """You are a YouTube channel manager writing copy to \
+promote a sermon video from the source content. Your job is not to summarise \
+the content but to create curiosity and draw the viewer in so they click and \
+watch.
+
+The video is a Sunday service recording from Harvest Church, an Australian \
+Christian Churches multi-campus church in the Wimmera region of Victoria. \
+Ignore all the worship singing and preamble in the transcript below and \
+focus only on the spoken sermon by {speaker}.
 
 Sermon title: {title}
-Speaker: {speaker}
 
-Below is the raw transcript of the sermon. Write a blurb of 3-4 short paragraphs \
-that:
-- Summarises the core message and key scripture references
-- Uses a warm, direct tone (not generic "inspirational" church-marketing language)
-- Avoids rule-of-three constructions, abstract noun stacking, and symmetrical \
-sentence repetition
-- Ends with a one-line call to action inviting people to join a Sunday service
+Write a YouTube video description using this structure:
 
-Do not use em dashes anywhere. Use commas, colons, or separate sentences instead.
+An opening hook of 2 to 3 sentences that poses a question or tension related \
+to the video's core theme. Do not reveal the answer or resolution.
+
+A short paragraph of 3 to 4 sentences that teases what the viewer will \
+encounter without spoiling it. Use language that creates anticipation.
+
+A one sentence call to action inviting the viewer to watch.
+
+A blank line, then a list of 10 to 15 relevant hashtags using title case, \
+each on its own line.
+
+Tone: warm, direct, and conversational. Avoid Christian cliche phrases like \
+"life-changing" or "powerful message." Write as if you are talking to someone \
+who is spiritually curious but not necessarily a regular churchgoer. Do not \
+include timestamps, links, or any placeholder text. Do not use em dashes \
+anywhere; use commas, colons, or separate sentences instead.
 
 Transcript:
 {transcript}
