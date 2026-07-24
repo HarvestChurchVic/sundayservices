@@ -66,10 +66,12 @@ def download_and_extract(youtube_url: str, slug: str) -> Path:
     mp3_path = DOWNLOADS / f"{slug}.mp3"
 
     print("Downloading MP4 from YouTube...")
-    subprocess.run(
-        ["yt-dlp", "-f", "mp4", "-o", str(mp4_path), youtube_url],
-        check=True,
-    )
+    yt_dlp_cmd = ["yt-dlp", "-f", "mp4", "-o", str(mp4_path)]
+    cookies_path = WORKDIR / "youtube_cookies.txt"
+    if cookies_path.exists():
+        yt_dlp_cmd += ["--cookies", str(cookies_path)]
+    yt_dlp_cmd.append(youtube_url)
+    subprocess.run(yt_dlp_cmd, check=True)
 
     print("Extracting MP3 audio...")
     subprocess.run(

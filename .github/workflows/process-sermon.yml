@@ -39,6 +39,17 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
+      - name: Restore YouTube cookies
+        env:
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
+        run: |
+          if [ -n "$YOUTUBE_COOKIES" ]; then
+            echo "$YOUTUBE_COOKIES" > youtube_cookies.txt
+            echo "Cookies file written."
+          else
+            echo "No YOUTUBE_COOKIES secret set — downloads may be blocked by YouTube's bot detection."
+          fi
+
       - name: Run pipeline
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
