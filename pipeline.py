@@ -57,21 +57,28 @@ def env(key, required=True, default=None):
 # Step 1-2: download video, extract audio
 # ---------------------------------------------------------------------------
 
-def download_and_extract(youtube_url: str, slug: str) -> Path:
-    """Downloads the MP4, extracts its audio to MP3, deletes the MP4, and
-    returns the MP3 path. The MP4 is never uploaded or kept — YouTube is
-    already the permanent host for the video itself."""
+def download_and_extract(youtube_url: str, slug: str, source_key: str = None) -> Path:
+    """Gets the MP4 either from a manually-uploaded R2 object (source_key) or,
+    if not provided, by downloading it from YouTube with yt-dlp. Either way,
+    extracts the audio to MP3, deletes the MP4, and returns the MP3 path.
+    The MP4 is never uploaded or kept — YouTube is already the permanent
+    host for the video itself."""
     DOWNLOADS.mkdir(exist_ok=True)
     mp4_path = DOWNLOADS / f"{slug}.mp4"
     mp3_path = DOWNLOADS / f"{slug}.mp3"
 
-    print("Downloading MP4 from YouTube...")
-    yt_dlp_cmd = ["yt-dlp", "-f", "mp4", "-o", str(mp4_path), "--remote-components", "ejs:github"]
-    cookies_path = WORKDIR / "youtube_cookies.txt"
-    if cookies_path.exists():
-        yt_dlp_cmd += ["--cookies", str(cookies_path)]
-    yt_dlp_cmd.append(youtube_url)
-    subprocess.run(yt_dlp_cmd, check=True)
+    if source_key:
+        print(f"Downloading raw video from R2 ({source_key}) instead of YouTube...")
+        client = get_r2_client()
+        client.download_file(env("R2_BUCKET_NAME"), source_key, str(mp4_path))
+    else:
+        print("Downloading MP4 from YouTube...")
+        yt_dlp_cmd = ["yt-dlp", "-f", "mp4", "-o", str(mp4_path), "--remote-components", "ejs:github"]
+        cookies_path = WORKDIR / "youtube_cookies.txt"
+        if cookies_path.exists():
+            yt_dlp_cmd += ["--cookies", str(cookies_path)]
+        yt_dlp_cmd.append(youtube_url)
+        subprocess.run(yt_dlp_cmd, check=True)
 
     print("Extracting MP3 audio...")
     subprocess.run(
@@ -86,6 +93,11 @@ def download_and_extract(youtube_url: str, slug: str) -> Path:
 
     print("Deleting MP4 (YouTube already hosts the video permanently)...")
     mp4_path.unlink()
+
+    if source_key:
+        print(f"Removing raw upload from R2 ({source_key})...")
+        client = get_r2_client()
+        client.delete_object(Bucket=env("R2_BUCKET_NAME"), Key=source_key)
 
     return mp3_path
 
@@ -267,15 +279,19 @@ def slugify(text: str) -> str:
 
 def main():
     parser = argparse.ArgumentParser(description="Sermon repurposing pipeline")
-    parser.add_argument("youtube_url", help="URL of the finished, edited YouTube clip")
+    parser.add_argument("youtube_url", help="URL of the finished, edited YouTube clip (for reference/notification)")
     parser.add_argument("--title", required=True, help="Sermon title")
     parser.add_argument("--speaker", required=True, help="Speaker name")
     parser.add_argument("--sermon-date", required=True, help="Sunday date, YYYY-MM-DD")
+    parser.add_argument("--source-file", default=None,
+                         help="R2 object key of a manually-uploaded raw video "
+                              "(e.g. raw-uploads/sermon.mp4). If given, this is "
+                              "used instead of downloading via yt-dlp.")
     args = parser.parse_args()
 
     slug = f"{args.sermon_date}-{slugify(args.title)}"
 
-    mp3_path = download_and_extract(args.youtube_url, slug)
+    mp3_path = download_and_extract(args.youtube_url, slug, source_key=args.source_file)
     transcript = transcribe(mp3_path)
     blurb = generate_blurb(transcript, args.title, args.speaker)
 

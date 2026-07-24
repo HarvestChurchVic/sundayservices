@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       youtube_url:
-        description: "URL of the finished, edited YouTube clip"
+        description: "URL of the finished, edited YouTube clip (for reference)"
         required: true
       title:
         description: "Sermon title"
@@ -17,6 +17,9 @@ on:
       sermon_date:
         description: "Sunday date, YYYY-MM-DD"
         required: true
+      source_file:
+        description: "R2 key of manually-uploaded video (e.g. raw-uploads/sermon.mp4). Leave blank to use yt-dlp instead."
+        required: false
 
 jobs:
   process:
@@ -37,6 +40,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Install Deno (JS runtime required by yt-dlp)
+        if: github.event.inputs.source_file == ''
         run: |
           curl -fsSL https://deno.land/install.sh | sh
           echo "$HOME/.deno/bin" >> "$GITHUB_PATH"
@@ -47,6 +51,7 @@ jobs:
           pip install -U yt-dlp
 
       - name: Restore YouTube cookies
+        if: github.event.inputs.source_file == ''
         env:
           YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
         run: |
@@ -82,10 +87,14 @@ jobs:
           PODCAST_WEBSITE: ${{ secrets.PODCAST_WEBSITE }}
         run: |
           set +e
+          EXTRA_ARGS=""
+          if [ -n "${{ github.event.inputs.source_file }}" ]; then
+            EXTRA_ARGS="--source-file ${{ github.event.inputs.source_file }}"
+          fi
           python pipeline.py "${{ github.event.inputs.youtube_url }}" \
             --title "${{ github.event.inputs.title }}" \
             --speaker "${{ github.event.inputs.speaker }}" \
-            --sermon-date "${{ github.event.inputs.sermon_date }}" 2>&1 | tee pipeline_debug.log
+            --sermon-date "${{ github.event.inputs.sermon_date }}" $EXTRA_ARGS 2>&1 | tee pipeline_debug.log
           exit ${PIPESTATUS[0]}
         shell: bash
 

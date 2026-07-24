@@ -32,10 +32,23 @@ device — nothing needs to be installed locally.
 
 ## Running it
 
-Actions tab -> **Process Sermon** -> **Run workflow** -> fill in the YouTube
-URL, title, speaker, and sermon date -> **Run workflow**. A summary email
-arrives once it's done, with the blurb and links for the two remaining
-manual steps.
+There are two ways to get the video in:
+
+**Option A — manual upload (recommended, most reliable):** download the
+finished YouTube clip yourself (any method you like), then drag it into the
+R2 bucket's `raw-uploads/` folder via the Cloudflare dashboard (R2 →
+`harvestchurch-sermons` → Upload). Then run the workflow with the `source_file`
+field set to that path, e.g. `raw-uploads/2026-07-27-sermon.mp4`. The pipeline
+pulls it from R2, processes it, then deletes the raw upload once done.
+
+**Option B — automatic via yt-dlp:** leave `source_file` blank and the
+pipeline downloads the video from YouTube itself. This depends on YouTube
+cookies (`YOUTUBE_COOKIES` secret) staying valid, which needs periodic
+refreshing — option A avoids this entirely.
+
+Either way: Actions tab → **Process Sermon** → **Run workflow** → fill in the
+YouTube URL (for reference), title, speaker, sermon date, and optionally
+`source_file` → **Run workflow**. A summary email arrives once it's done.
 
 ## First time only: submitting the feed
 
