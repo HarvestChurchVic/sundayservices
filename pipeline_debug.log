@@ -4,11 +4,13 @@ WARNING: "-f mp4" selects the best pre-merged mp4 format which is often not what
          If you know what you are doing and want a pre-merged mp4 format, use "-f b[ext=mp4]" instead to suppress this warning
 [youtube] Extracting URL: https://youtu.be/azqvsk0pbwk
 [youtube] azqvsk0pbwk: Downloading webpage
-WARNING: [youtube] The provided YouTube account cookies are no longer valid. They have likely been rotated in the browser as a security measure. For tips on how to effectively export YouTube cookies, refer to  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies .
-[youtube] azqvsk0pbwk: Downloading android vr player API JSON
-WARNING: [youtube] The provided YouTube account cookies are no longer valid. They have likely been rotated in the browser as a security measure. For tips on how to effectively export YouTube cookies, refer to  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies .
-WARNING: [youtube] No title found in player responses; falling back to title from initial data. Other metadata may also be missing
-ERROR: [youtube] azqvsk0pbwk: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies
+[youtube] azqvsk0pbwk: Downloading tv downgraded player API JSON
+[youtube] azqvsk0pbwk: Downloading player 7a7969c2-main
+[youtube] [jsc:deno] Solving JS challenges using deno
+WARNING: [youtube] [jsc] Remote components challenge solver script (deno) and NPM package (deno) were skipped. These may be required to solve JS challenges. You can enable these downloads with  --remote-components ejs:github  (recommended) or  --remote-components ejs:npm , respectively. For more information and alternatives, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS
+WARNING: [youtube] azqvsk0pbwk: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS
+WARNING: Only images are available for download. use --list-formats to see them
+ERROR: [youtube] azqvsk0pbwk: Requested format is not available. Use --list-formats for a list of available formats
 Downloading MP4 from YouTube...
 Traceback (most recent call last):
   File "/home/runner/work/sundayservices/sundayservices/pipeline.py", line 312, in <module>
@@ -20,4 +22,4 @@ Traceback (most recent call last):
     subprocess.run(yt_dlp_cmd, check=True)
   File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/subprocess.py", line 571, in run
     raise CalledProcessError(retcode, process.args,
-subprocess.CalledProcessError: Command '['yt-dlp', '-f', 'mp4', '-o', '/home/runner/work/sundayservices/sundayservices/downloads/2026-07-24-pipeline-connection-test-6.mp4', '--cookies', '/home/runner/work/sundayservices/sundayservices/youtube_cookies.txt', 'https://youtu.be/azqvsk0pbwk']' returned non-zero exit status 1.
+subprocess.CalledProcessError: Command '['yt-dlp', '-f', 'mp4', '-o', '/home/runner/work/sundayservices/sundayservices/downloads/2026-07-24-pipeline-connection-test-7.mp4', '--cookies', '/home/runner/work/sundayservices/sundayservices/youtube_cookies.txt', 'https://youtu.be/azqvsk0pbwk']' returned non-zero exit status 1.
