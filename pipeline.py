@@ -66,7 +66,7 @@ def download_and_extract(youtube_url: str, slug: str) -> Path:
     mp3_path = DOWNLOADS / f"{slug}.mp3"
 
     print("Downloading MP4 from YouTube...")
-    yt_dlp_cmd = ["yt-dlp", "-f", "mp4", "-o", str(mp4_path)]
+    yt_dlp_cmd = ["yt-dlp", "-f", "mp4", "-o", str(mp4_path), "--remote-components", "ejs:github"]
     cookies_path = WORKDIR / "youtube_cookies.txt"
     if cookies_path.exists():
         yt_dlp_cmd += ["--cookies", str(cookies_path)]
