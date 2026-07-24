@@ -126,10 +126,9 @@ promote a sermon video from the source content. Your job is not to summarise \
 the content but to create curiosity and draw the viewer in so they click and \
 watch.
 
-The video is a Sunday service recording from Harvest Church, an Australian \
-Christian Churches multi-campus church in the Wimmera region of Victoria. \
-Ignore all the worship singing and preamble in the transcript below and \
-focus only on the spoken sermon by {speaker}.
+The video is a sermon from Harvest Church, an Australian Christian Churches \
+multi-campus church in the Wimmera region of Victoria, preached by {speaker}. \
+The transcript below is the sermon itself.
 
 Sermon title: {title}
 
