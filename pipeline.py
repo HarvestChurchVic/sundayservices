@@ -201,6 +201,28 @@ def upload_to_r2(local_path: Path, key: str) -> str:
     return f"{base_url}/{key}"
 
 
+def find_episode_image_url(source_key: str) -> str | None:
+    """Looks for a thumbnail PNG uploaded alongside the raw video: same
+    filename (minus extension) as source_key, inside an images/ folder in
+    the bucket. Returns its public URL if found, or None if there isn't one
+    (the feed will fall back to the podcast's default cover art)."""
+    if not source_key:
+        return None
+    base_name = Path(source_key).stem
+    image_key = f"images/{base_name}.png"
+    client = get_r2_client()
+    bucket = env("R2_BUCKET_NAME")
+    try:
+        client.head_object(Bucket=bucket, Key=image_key)
+    except Exception:
+        print(f"No episode thumbnail found at {image_key} — using default podcast artwork.")
+        return None
+    base_url = env("R2_PUBLIC_BASE_URL").rstrip("/")
+    print(f"Found episode thumbnail: {image_key}")
+    return f"{base_url}/{image_key}"
+    return f"{base_url}/{key}"
+
+
 # ---------------------------------------------------------------------------
 # Step 6: RSS feed — build from scratch each run using the local episode log
 # ---------------------------------------------------------------------------
@@ -240,6 +262,8 @@ def build_and_upload_feed(episodes: list[dict]) -> str:
         fe.enclosure(ep["mp3_url"], str(ep["filesize"]), "audio/mpeg")
         fe.pubDate(ep["pub_date"])
         fe.podcast.itunes_author(ep.get("speaker", env("PODCAST_AUTHOR")))
+        if ep.get("image_url"):
+            fe.podcast.itunes_image(ep["image_url"])
 
     feed_path = WORKDIR / "feed.xml"
     fg.rss_file(str(feed_path))
@@ -263,6 +287,7 @@ Sermon date: {context['sermon_date']}
 YouTube clip: {context['youtube_url']}
 Hosted MP3: {context['mp3_url']}
 Podcast RSS feed: {context['feed_url']}
+Episode thumbnail: {context['image_url'] if context.get('image_url') else 'None found — using default podcast artwork. Upload images/<filename>.png to R2 alongside the video to set one.'}
 
 --- Blurb ---
 {context['blurb']}
@@ -309,6 +334,7 @@ def main():
     blurb = generate_blurb(transcript, args.title, args.speaker)
 
     mp3_url = upload_to_r2(mp3_path, f"audio/{slug}.mp3")
+    image_url = find_episode_image_url(args.source_file)
 
     episodes = load_episode_log()
     episodes.append({
@@ -319,6 +345,7 @@ def main():
         "filesize": mp3_path.stat().st_size,
         "pub_date": datetime.strptime(args.sermon_date, "%Y-%m-%d")
             .replace(tzinfo=timezone.utc).isoformat(),
+        "image_url": image_url,
     })
     save_episode_log(episodes)
     feed_url = build_and_upload_feed(episodes)
@@ -331,6 +358,7 @@ def main():
         "mp3_url": mp3_url,
         "feed_url": feed_url,
         "blurb": blurb,
+        "image_url": image_url,
     })
 
     print("\nDone.")

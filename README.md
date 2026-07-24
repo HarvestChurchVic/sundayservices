@@ -50,6 +50,16 @@ Either way: Actions tab → **Process Sermon** → **Run workflow** → fill in 
 YouTube URL (for reference), title, speaker, sermon date, and optionally
 `source_file` → **Run workflow**. A summary email arrives once it's done.
 
+## Episode thumbnails (optional)
+
+To give a specific episode its own artwork (instead of the default podcast
+cover), upload a PNG to R2 at `images/<same-filename-as-video>.png`. For
+example, if the raw video is `20260725.mp4`, the thumbnail goes at
+`images/20260725.png`. The pipeline checks for this automatically — if
+found, it's used as that episode's artwork in the feed; if not, the episode
+falls back to the podcast's default cover art. This only applies when using
+the manual R2 upload path (source_file), not the yt-dlp path.
+
 ## First time only: submitting the feed
 
 Once the first episode has been processed, submit the feed URL
