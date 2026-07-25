@@ -65,7 +65,8 @@
 
 <script>
 // Set this to your deployed Worker's URL
-const WORKER_URL = "https://your-worker-subdomain.your-account.workers.dev";
+// Set this to your deployed Worker's URL (trailing slash stripped automatically)
+const WORKER_URL = "https://sermon-upload-trigger.andrew-913.workers.dev".replace(/\/+$/, "");
 
 const form = document.getElementById("sermonForm");
 const statusDiv = document.getElementById("status");
