@@ -63,16 +63,19 @@ the manual R2 upload path (source_file), not the yt-dlp path.
 ## Automatic triggering via web form (for the whole team)
 
 Instead of running the workflow by hand or using GitHub directly, anyone on
-the team can use a simple web form (`web-trigger/sermon-upload-form.html`) —
-fill in the title, speaker, date, pick the video file (and optionally a
-thumbnail), enter the shared passphrase, and click **Upload & Process**. The
-form uploads the files straight to R2 from the browser and triggers the
-pipeline automatically — no GitHub access needed at all.
+the team can use a simple web form — fill in the title, speaker, date, pick
+the video file (and optionally a thumbnail), enter the shared passphrase,
+and click **Upload & Process**. The form uploads the files straight to R2
+from the browser and triggers the pipeline automatically — no GitHub access
+needed at all.
 
-**How it works:** a small Cloudflare Worker (`web-trigger/worker.js`) issues
-temporary upload permissions directly to R2 (so large video files never pass
-through the Worker itself, avoiding Cloudflare's 100MB request body limit),
-then triggers the "Process Sermon" GitHub Action once the upload completes.
+**How it works:** a Cloudflare Worker (`web-trigger/worker.js`) serves the
+form itself (embedded in the Worker's code) on any GET request, issues
+temporary upload permissions directly to R2 on request (so large video files
+never pass through the Worker itself, avoiding Cloudflare's 100MB request
+body limit), then triggers the "Process Sermon" GitHub Action once the
+upload completes. Because the form and the API live on the same domain,
+there's no cross-origin/CORS complexity to manage.
 
 **One-time setup:**
 1. In the Cloudflare dashboard: Workers & Pages → Create → paste in the
@@ -81,15 +84,21 @@ then triggers the "Process Sermon" GitHub Action once the upload completes.
    `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
    `R2_BUCKET_NAME` (same values as the repo secrets), `GITHUB_TOKEN` (the
    same fine-grained PAT used for this repo — needs Contents, Workflows, and
-   Actions permissions), `FORM_PASSPHRASE` (any passphrase you choose — the
-   form won't work without it, so only people you've shared it with can
-   trigger a run), and `ALLOWED_ORIGIN` (your website's URL, e.g.
-   `https://harvestchurch.org.au`)
-3. Copy the Worker's URL (shown after deploying, looks like
-   `https://sermon-upload.<your-subdomain>.workers.dev`) into the
-   `WORKER_URL` constant near the top of `sermon-upload-form.html`
-4. Embed or upload `sermon-upload-form.html` as a hidden page on your
-   website, and share the passphrase with whoever needs to use it
+   Actions permissions), and `FORM_PASSPHRASE` (any passphrase you choose —
+   the form won't work without it, so only people you've shared it with can
+   trigger a run)
+3. On that Worker's Settings → Domains & Routes → Add Custom Domain, connect
+   a domain/subdomain you control (needs to be added to your Cloudflare
+   account first) — e.g. `form.yourdomain.com`
+4. Also update the R2 bucket's CORS policy (R2 → bucket → Settings → CORS
+   Policy) to allow that same domain as `AllowedOrigins`, since the direct
+   browser-to-R2 upload is a separate request from the form's own domain
+5. Share the form's URL and the passphrase with whoever needs to use it
+
+If you ever edit `web-trigger/sermon-upload-form.html` directly (styling,
+fields, etc.), the change needs to be re-embedded into `worker.js` and
+redeployed — the form's HTML is baked into the Worker's code as a constant,
+not fetched separately.
 
 ## First time only: submitting the feed
 
