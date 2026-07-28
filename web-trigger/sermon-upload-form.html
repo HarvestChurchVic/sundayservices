@@ -64,9 +64,8 @@
 <div id="status"></div>
 
 <script>
-// Set this to your deployed Worker's URL
-// Set this to your deployed Worker's URL (trailing slash stripped automatically)
-const WORKER_URL = "https://sermon-upload-trigger.andrew-913.workers.dev".replace(/\/+$/, "");
+// Same-origin since this form is served directly by the Worker
+const WORKER_URL = "";
 
 const form = document.getElementById("sermonForm");
 const statusDiv = document.getElementById("status");
