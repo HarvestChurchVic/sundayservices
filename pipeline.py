@@ -142,8 +142,10 @@ encounter without spoiling it. Use language that creates anticipation.
 
 A one sentence call to action inviting the viewer to watch.
 
-A blank line, then a list of 10 to 15 relevant hashtags using title case, \
-each on its own line.
+Then on a new line, write exactly the marker "===HASHTAGS===" on its own \
+line, followed by a list of 10 to 15 relevant hashtags using title case, \
+each on its own line. This marker must appear exactly once and nowhere \
+else in your response.
 
 Tone: warm, direct, and conversational. Avoid Christian cliche phrases like \
 "life-changing" or "powerful message." Write as if you are talking to someone \
@@ -156,7 +158,11 @@ Transcript:
 """
 
 
-def generate_blurb(transcript: str, title: str, speaker: str) -> str:
+def generate_blurb(transcript: str, title: str, speaker: str) -> dict:
+    """Returns {"blurb": ..., "hashtags": ..., "full": ...} — "blurb" is the
+    hook/teaser/CTA text with no hashtags (used for the podcast feed
+    description), "hashtags" is just the hashtag list, and "full" is both
+    combined (used for YouTube, where hashtags are wanted)."""
     import anthropic
 
     print("Generating blurb via Claude API...")
@@ -169,7 +175,26 @@ def generate_blurb(transcript: str, title: str, speaker: str) -> str:
         max_tokens=1000,
         messages=[{"role": "user", "content": prompt}],
     )
-    return message.content[0].text.strip()
+    full_text = message.content[0].text.strip()
+
+    marker = "===HASHTAGS==="
+    if marker in full_text:
+        blurb_text, hashtags_text = full_text.split(marker, 1)
+        blurb_text = blurb_text.strip()
+        hashtags_text = hashtags_text.strip()
+        full_clean = f"{blurb_text}\n\n{hashtags_text}"
+    else:
+        # Fallback if the model ever omits the marker: use the whole thing
+        # as the blurb and leave hashtags empty rather than guessing.
+        blurb_text = full_text
+        hashtags_text = ""
+        full_clean = full_text
+
+    return {
+        "blurb": blurb_text,
+        "hashtags": hashtags_text,
+        "full": full_clean,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -331,7 +356,7 @@ def main():
 
     mp3_path = download_and_extract(args.youtube_url, slug, source_key=args.source_file)
     transcript = transcribe(mp3_path)
-    blurb = generate_blurb(transcript, args.title, args.speaker)
+    blurb_parts = generate_blurb(transcript, args.title, args.speaker)
 
     mp3_url = upload_to_r2(mp3_path, f"audio/{slug}.mp3")
     image_url = find_episode_image_url(args.source_file)
@@ -340,7 +365,7 @@ def main():
     episodes.append({
         "title": args.title,
         "speaker": args.speaker,
-        "blurb": blurb,
+        "blurb": blurb_parts["blurb"],  # no hashtags — this is what podcast apps show
         "mp3_url": mp3_url,
         "filesize": mp3_path.stat().st_size,
         "pub_date": datetime.strptime(args.sermon_date, "%Y-%m-%d")
@@ -357,7 +382,7 @@ def main():
         "youtube_url": args.youtube_url,
         "mp3_url": mp3_url,
         "feed_url": feed_url,
-        "blurb": blurb,
+        "blurb": blurb_parts["full"],  # with hashtags — this is what goes on YouTube
         "image_url": image_url,
     })
 
