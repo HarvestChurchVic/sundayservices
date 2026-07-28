@@ -1,0 +1,36 @@
+name: Rebuild Feed Only
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Rebuild feed
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+          PODCAST_TITLE: ${{ secrets.PODCAST_TITLE }}
+          PODCAST_AUTHOR: ${{ secrets.PODCAST_AUTHOR }}
+          PODCAST_DESCRIPTION: ${{ secrets.PODCAST_DESCRIPTION }}
+          PODCAST_IMAGE_URL: ${{ secrets.PODCAST_IMAGE_URL }}
+          PODCAST_LANGUAGE: en-au
+          PODCAST_CATEGORY: "Religion & Spirituality"
+          PODCAST_EXPLICIT: "false"
+          PODCAST_WEBSITE: ${{ secrets.PODCAST_WEBSITE }}
+        run: python rebuild_feed.py
