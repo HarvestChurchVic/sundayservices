@@ -7,7 +7,7 @@ mp3, and thumbnail. Re-hosts audio + images on R2 and merges everything into
 feed_items.json in the same schema your pipeline already uses, then rebuilds
 feed.xml sorted by date.
 
-Requires: pip install boto3 requests feedgen
+Requires: pip install boto3 requests feedgen ftfy
 
 Environment variables required (same ones your GitHub Action secrets use):
     R2_ACCOUNT_ID
@@ -17,14 +17,12 @@ Environment variables required (same ones your GitHub Action secrets use):
     R2_PUBLIC_BASE_URL   (e.g. https://hrvstpdcst.com)
 
 Usage:
-    export R2_ACCOUNT_ID=...
-    export R2_ACCESS_KEY_ID=...
-    export R2_SECRET_ACCESS_KEY=...
-    export R2_BUCKET=harvestchurch-sermons
-    export R2_PUBLIC_BASE_URL=https://hrvstpdcst.com
-
-    python migrate_subsplash_feed.py --dry-run     # preview only, no uploads
-    python migrate_subsplash_feed.py               # do it for real
+    python migrate_subsplash_feed.py --dry-run             # preview only
+    python migrate_subsplash_feed.py                       # do it for real
+    python migrate_subsplash_feed.py --fix-existing-blurbs # repair garbled
+                                                             # text already
+                                                             # migrated, no
+                                                             # re-download
 
 Safe to re-run: episodes already present in feed_items.json (matched by
 title + pub_date) are skipped, so you can stop and resume any time.
@@ -67,14 +65,18 @@ def slugify(text: str, date: str) -> str:
 
 def clean_blurb(raw_html: str) -> str:
     """Converts Subsplash's HTML summary into plain text paragraphs,
-    matching the plain-text style already used in feed_items.json."""
+    matching the plain-text style already used in feed_items.json.
+    Also repairs mojibake (double/triple-encoded text) that's already
+    corrupted in Subsplash's own source data for some older episodes."""
     if not raw_html or not raw_html.strip():
         return ""
+    import ftfy
     text = html.unescape(raw_html)
     text = re.sub(r"<br\s*/?>", "\n", text)
     text = re.sub(r"</p>\s*<p>", "\n\n", text)
     text = re.sub(r"<[^>]+>", "", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
+    text = ftfy.fix_text(text)
     return text.strip()
 
 
@@ -174,8 +176,9 @@ def build_feed_xml(items, out_path: Path):
 
     for ep in sorted(items, key=lambda e: e["pub_date"]):
         fe = fg.add_entry()
+        fe.id(ep["mp3_url"])
         fe.title(ep["title"])
-        fe.description(ep["blurb"] or ep["title"])
+        fe.description(ep["blurb"] or "")
         fe.enclosure(ep["mp3_url"], str(ep.get("filesize", 0)), "audio/mpeg")
         fe.pubDate(ep["pub_date"])
         fe.podcast.itunes_author(ep.get("speaker", ""))
@@ -190,7 +193,40 @@ def main():
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--limit", type=int, default=None,
                          help="Only process the first N episodes (for testing)")
+    parser.add_argument("--fix-existing-blurbs", action="store_true",
+                         help="Repair mojibake/garbled text in blurbs already in "
+                              "feed_items.json, rebuild feed.xml, and re-upload. "
+                              "Does NOT re-download or re-upload any audio/images.")
     args = parser.parse_args()
+
+    if args.fix_existing_blurbs:
+        import ftfy
+        existing = json.loads(FEED_ITEMS_PATH.read_text())
+        changed = 0
+        for e in existing:
+            fixed = ftfy.fix_text(e.get("blurb", "") or "")
+            if fixed != e.get("blurb", ""):
+                changed += 1
+            e["blurb"] = fixed
+        print(f"Repaired {changed} blurb(s) out of {len(existing)} total.")
+        FEED_ITEMS_PATH.write_text(json.dumps(existing, indent=2))
+
+        feed_items_for_xml = []
+        for e in existing:
+            e2 = dict(e)
+            e2["pub_date"] = datetime.fromisoformat(e["pub_date"])
+            feed_items_for_xml.append(e2)
+
+        feed_xml_path = Path("feed.xml")
+        build_feed_xml(feed_items_for_xml, feed_xml_path)
+
+        client = get_r2_client()
+        bucket = os.environ["R2_BUCKET"]
+        feed_public_url = upload_to_r2(client, bucket, feed_xml_path, "feed.xml", "application/rss+xml")
+        upload_to_r2(client, bucket, FEED_ITEMS_PATH, "feed_items.json", "application/json")
+        print(f"Uploaded repaired feed.xml -> {feed_public_url}")
+        print("Done. Commit the updated feed_items.json back to the repo.")
+        return
 
     existing = json.loads(FEED_ITEMS_PATH.read_text()) if FEED_ITEMS_PATH.exists() else []
     existing_keys = {(e["title"], e["pub_date"][:10]) for e in existing}
