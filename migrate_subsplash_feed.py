@@ -48,6 +48,17 @@ DOWNLOAD_DIR = Path("./_migration_downloads")
 
 ITUNES_NS = "{http://www.itunes.com/dtds/podcast-1.0.dtd}"
 
+# Titles to skip entirely — case-insensitive substring match. Add more as you
+# spot them while reviewing the Subsplash feed.
+EXCLUDE_TITLE_PATTERNS = [
+    "disciple 2 - topic",
+]
+
+
+def title_is_excluded(title: str) -> bool:
+    t = title.lower()
+    return any(pattern.lower() in t for pattern in EXCLUDE_TITLE_PATTERNS)
+
 
 def slugify(text: str, date: str) -> str:
     s = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
@@ -87,8 +98,22 @@ def parse_subsplash_feed():
         if not audio_url:
             continue  # skip anything without audio
 
-        pub_dt = datetime.strptime(pub_date_raw, "%a, %d %b %Y %H:%M:%S %z") \
-            if pub_date_raw else None
+        if title_is_excluded(title):
+            print(f"  SKIPPING (excluded title): {title}")
+            continue
+
+        pub_dt = None
+        if pub_date_raw:
+            for fmt in ("%a, %d %b %Y %H:%M:%S %z", "%d %b %Y %H:%M:%S %z"):
+                try:
+                    pub_dt = datetime.strptime(pub_date_raw, fmt)
+                    break
+                except ValueError:
+                    continue
+
+        if pub_dt is None:
+            print(f"  SKIPPING (no usable pubDate: {pub_date_raw!r}): {title}")
+            continue
 
         items.append({
             "title": title,
