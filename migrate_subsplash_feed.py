@@ -185,7 +185,7 @@ def build_feed_xml(items, out_path: Path):
         if ep.get("image_url"):
             fe.podcast.itunes_image(ep["image_url"])
 
-    ffg.rss_file(str(out_path), pretty=True)
+    fg.rss_file(str(out_path), pretty=True)
 
 
 def main():
