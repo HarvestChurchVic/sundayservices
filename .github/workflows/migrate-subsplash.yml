@@ -10,6 +10,10 @@ on:
         description: "Preview only, no uploads (true/false)"
         required: false
         default: "false"
+      fix_blurbs:
+        description: "Repair garbled text in already-migrated blurbs only (true/false)"
+        required: false
+        default: "false"
 
 jobs:
   migrate:
@@ -24,7 +28,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install boto3 requests feedgen
+        run: pip install boto3 requests feedgen ftfy
 
       - name: Run migration
         env:
@@ -40,6 +44,9 @@ jobs:
           fi
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             ARGS="$ARGS --dry-run"
+          fi
+          if [ "${{ github.event.inputs.fix_blurbs }}" = "true" ]; then
+            ARGS="$ARGS --fix-existing-blurbs"
           fi
           python migrate_subsplash_feed.py $ARGS
 
