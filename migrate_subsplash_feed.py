@@ -64,7 +64,7 @@ CHANNEL_DESCRIPTION = (
     "anyone who wants to grow in their relationship with God, find "
     "genuine community, and discover what it looks like to carry faith "
     "into everyday life. Wherever you're at in your journey, we're glad "
-    "you're here."
+    "you're here. Learn more and get connected at https://www.harvestchurch.org.au."
 )
 # Original show cover art from Subsplash - re-hosted on R2 rather than
 # linked directly, so the feed doesn't depend on Subsplash staying online.
