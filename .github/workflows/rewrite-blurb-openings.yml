@@ -1,0 +1,80 @@
+name: Rewrite Blurb Openings
+
+on:
+  workflow_dispatch:
+    inputs:
+      batch_size:
+        description: "How many blurbs to rewrite this run (leave blank for all remaining)"
+        required: false
+        default: "30"
+      dry_run:
+        description: "Preview assignments only, no rewriting (true/false)"
+        required: false
+        default: "false"
+
+concurrency:
+  group: rewrite-blurb-openings
+  cancel-in-progress: false
+
+jobs:
+  rewrite-openings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install anthropic requests boto3 feedgen ftfy
+
+      - name: Rewrite blurb openings
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.batch_size }}" ]; then
+            ARGS="$ARGS --batch-size ${{ github.event.inputs.batch_size }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          python rewrite_blurb_openings.py $ARGS
+
+      - name: Commit rewritten blurbs locally
+        if: ${{ always() && github.event.inputs.dry_run != 'true' }}
+        run: |
+          git add feed_items.json blurb_rewrite_state.json
+          git diff --staged --quiet || git commit -m "Rewrite blurb openings for a batch of episodes"
+
+      - name: Rebuild and upload feed.xml
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: harvestchurch-sermons
+          R2_PUBLIC_BASE_URL: https://hrvstpdcst.com
+        run: python migrate_subsplash_feed.py --fix-existing-blurbs
+
+      - name: Commit feed rebuild
+        if: ${{ always() && github.event.inputs.dry_run != 'true' }}
+        run: |
+          git add feed_items.json
+          git diff --staged --quiet || git commit -m "Rebuild feed.xml after rewrite batch"
+
+      - name: Push everything committed so far
+        if: ${{ always() && github.event.inputs.dry_run != 'true' }}
+        run: |
+          git fetch origin main
+          git rebase origin/main
+          git push
