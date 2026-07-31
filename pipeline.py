@@ -134,8 +134,9 @@ Sermon title: {title}
 
 Write a YouTube video description using this structure:
 
-An opening hook of 2 to 3 sentences that poses a question or tension related \
-to the video's core theme. Do not reveal the answer or resolution.
+An opening hook of 2 to 3 sentences related to the video's core theme. Do \
+not reveal the answer or resolution. For this hook, use this specific \
+approach: {hook_style}
 
 A short paragraph of 3 to 4 sentences that teases what the viewer will \
 encounter without spoiling it. Use language that creates anticipation.
@@ -152,23 +153,61 @@ Tone: warm, direct, and conversational. Avoid Christian cliche phrases like \
 who is spiritually curious but not necessarily a regular churchgoer. Do not \
 include timestamps, links, or any placeholder text. Do not use em dashes \
 anywhere; use commas, colons, or separate sentences instead.
-
+{recent_openings_section}
 Transcript:
 {transcript}
 """
 
+# Rotated to force variety in the opening hook, since leaving this to chance
+# tends to converge on the same "What if...?" question every time.
+HOOK_STYLES = [
+    "Open with a direct statement or claim (not a question) that creates tension.",
+    "Open with a short, concrete scene or moment from everyday life that relates to the theme.",
+    "Open with a question, but not a \"What if...\" question — try \"Why...\", \"How...\", or \"What happens when...\" instead, or a rhetorical statement framed as a challenge.",
+    "Open by naming a common assumption or belief, then hint that it's about to be challenged.",
+    "Open with a short, punchy one-sentence statement, almost like a headline, then expand on it.",
+    "Open by directly addressing the viewer (\"you\") and a specific situation they might relate to.",
+]
 
-def generate_blurb(transcript: str, title: str, speaker: str) -> dict:
+
+def generate_blurb(transcript: str, title: str, speaker: str, recent_episodes: list = None) -> dict:
     """Returns {"blurb": ..., "hashtags": ..., "full": ...} — "blurb" is the
     hook/teaser/CTA text with no hashtags (used for the podcast feed
     description), "hashtags" is just the hashtag list, and "full" is both
-    combined (used for YouTube, where hashtags are wanted)."""
+    combined (used for YouTube, where hashtags are wanted).
+
+    recent_episodes: the last several episode dicts (most recent last), used
+    to steer the model away from repeating the same opening pattern."""
     import anthropic
+    import random
 
     print("Generating blurb via Claude API...")
     client = anthropic.Anthropic(api_key=env("ANTHROPIC_API_KEY"))
+
+    hook_style = random.choice(HOOK_STYLES)
+
+    recent_openings_section = ""
+    if recent_episodes:
+        openings = []
+        for ep in recent_episodes[-10:]:
+            first_line = ep.get("blurb", "").strip().split("\n")[0].strip()
+            if first_line:
+                openings.append(f"- {first_line}")
+        if openings:
+            recent_openings_section = (
+                "\nHere are the opening lines from the last several episode "
+                "descriptions. Your opening must be clearly different in "
+                "structure and wording from every one of these — do not "
+                "reuse the same phrasing, sentence pattern, or rhythm:\n"
+                + "\n".join(openings) + "\n"
+            )
+
     prompt = BLURB_PROMPT_TEMPLATE.format(
-        title=title, speaker=speaker, transcript=transcript
+        title=title,
+        speaker=speaker,
+        transcript=transcript,
+        hook_style=hook_style,
+        recent_openings_section=recent_openings_section,
     )
     message = client.messages.create(
         model="claude-sonnet-4-6",
@@ -356,12 +395,12 @@ def main():
 
     mp3_path = download_and_extract(args.youtube_url, slug, source_key=args.source_file)
     transcript = transcribe(mp3_path)
-    blurb_parts = generate_blurb(transcript, args.title, args.speaker)
+    episodes = load_episode_log()
+    blurb_parts = generate_blurb(transcript, args.title, args.speaker, recent_episodes=episodes)
 
     mp3_url = upload_to_r2(mp3_path, f"audio/{slug}.mp3")
     image_url = find_episode_image_url(args.source_file)
 
-    episodes = load_episode_log()
     episodes.append({
         "title": args.title,
         "speaker": args.speaker,
