@@ -1,14 +1,36 @@
-Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
-Downloading raw video from R2 (raw-uploads/1785205857281-The_Guaranteed_Christian_Life___The_Guarantee___Ps_Andrew_Cartledge.mp4) instead of YouTube...
-Extracting MP3 audio...
-Deleting MP4 (YouTube already hosts the video permanently)...
-Removing raw upload from R2 (raw-uploads/1785205857281-The_Guaranteed_Christian_Life___The_Guarantee___Ps_Andrew_Cartledge.mp4)...
-Transcribing (this can take a few minutes)...
-Generating blurb via Claude API...
-Uploading 2026-07-19-the-guarantee.mp3 to R2...
-Found episode thumbnail: images/1785205857281-The_Guaranteed_Christian_Life___The_Guarantee___Ps_Andrew_Cartledge.png
-Uploading feed.xml to R2...
-Sending notification email...
-
-Done.
-Feed URL (submit this once to Apple Podcasts Connect / Spotify for Podcasters): https://hrvstpdcst.com/feed.xml
+Downloading raw video from R2 (nonexistent-file.mp4) instead of YouTube...
+Traceback (most recent call last):
+  File "/home/runner/work/sundayservices/sundayservices/pipeline.py", line 589, in <module>
+    main()
+  File "/home/runner/work/sundayservices/sundayservices/pipeline.py", line 549, in main
+    mp3_path = download_and_extract(args.youtube_url, slug, source_key=args.source_file)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/sundayservices/sundayservices/pipeline.py", line 75, in download_and_extract
+    client.download_file(env("R2_BUCKET_NAME"), source_key, str(mp4_path))
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/botocore/context.py", line 123, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/boto3/s3/inject.py", line 223, in download_file
+    return transfer.download_file(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/boto3/s3/transfer.py", line 484, in download_file
+    future.result()
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/s3transfer/futures.py", line 111, in result
+    return self._coordinator.result()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/s3transfer/futures.py", line 287, in result
+    raise self._exception
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/s3transfer/tasks.py", line 272, in _main
+    self._submit(transfer_future=transfer_future, **kwargs)
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/s3transfer/download.py", line 379, in _submit
+    response = client.head_object(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/botocore/client.py", line 606, in _api_call
+    return self._make_api_call(operation_name, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/botocore/context.py", line 123, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/botocore/client.py", line 1094, in _make_api_call
+    raise error_class(parsed_response, operation_name)
+botocore.exceptions.ClientError: An error occurred (404) when calling the HeadObject operation: Not Found
