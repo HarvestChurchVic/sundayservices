@@ -1,0 +1,126 @@
+name: Process Sermon (TEST)
+
+# Runs exactly like "Process Sermon" but:
+#  - lets you pick which branch's code to run (e.g. "dev" while building a
+#    new feature), via the "Use workflow from" dropdown when you click
+#    Run workflow
+#  - uses the TEST_ prefixed secrets (separate R2 bucket, separate feed)
+#  - commits results back to whichever branch was selected, never to main
+#
+# Nothing this workflow does can affect the real production feed, bucket,
+# or episode list.
+on:
+  workflow_dispatch:
+    inputs:
+      youtube_url:
+        description: "URL of the finished, edited YouTube clip (for reference)"
+        required: true
+      title:
+        description: "Sermon title"
+        required: true
+      speaker:
+        description: "Speaker name"
+        required: true
+      sermon_date:
+        description: "Sunday date, YYYY-MM-DD"
+        required: true
+      source_file:
+        description: "R2 key of manually-uploaded video in the TEST bucket (e.g. raw-uploads/sermon.mp4). Leave blank to use yt-dlp instead."
+        required: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install Deno (JS runtime required by yt-dlp)
+        if: github.event.inputs.source_file == ''
+        run: |
+          curl -fsSL https://deno.land/install.sh | sh
+          echo "$HOME/.deno/bin" >> "$GITHUB_PATH"
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -U yt-dlp
+
+      - name: Restore YouTube cookies
+        if: github.event.inputs.source_file == ''
+        env:
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
+        run: |
+          if [ -n "$YOUTUBE_COOKIES" ]; then
+            echo "$YOUTUBE_COOKIES" > youtube_cookies.txt
+          fi
+
+      - name: Run pipeline (TEST resources)
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.TEST_R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.TEST_R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.TEST_R2_BUCKET_NAME }}
+          R2_PUBLIC_BASE_URL: ${{ secrets.TEST_R2_PUBLIC_BASE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          WHISPER_MODEL_SIZE: small
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          PODCAST_TITLE: "[TEST] Harvest Church Sunday Sermons"
+          PODCAST_AUTHOR: ${{ secrets.PODCAST_AUTHOR }}
+          PODCAST_DESCRIPTION: "TEST feed — not for public distribution"
+          PODCAST_IMAGE_URL: ${{ secrets.PODCAST_IMAGE_URL }}
+          PODCAST_LANGUAGE: en-au
+          PODCAST_CATEGORY: "Religion & Spirituality"
+          PODCAST_EXPLICIT: "false"
+          PODCAST_WEBSITE: ${{ secrets.PODCAST_WEBSITE }}
+        run: |
+          set +e
+          python pipeline.py "${{ github.event.inputs.youtube_url }}" \
+            --title "[TEST] ${{ github.event.inputs.title }}" \
+            --speaker "${{ github.event.inputs.speaker }}" \
+            --sermon-date "${{ github.event.inputs.sermon_date }}" \
+            --source-file "${{ github.event.inputs.source_file }}" 2>&1 | tee pipeline_debug.log
+          exit ${PIPESTATUS[0]}
+        shell: bash
+
+      - name: Commit debug log
+        if: always()
+        run: |
+          git config user.name "sermon-pipeline-bot"
+          git config user.email "actions@github.com"
+          git add pipeline_debug.log
+          git diff --staged --quiet && exit 0
+          git commit -m "TEST debug log from run ${{ github.run_id }}"
+          for i in 1 2 3 4 5; do
+            git push && exit 0
+            git pull --rebase
+          done
+
+      - name: Commit updated episode log
+        if: success()
+        run: |
+          git config user.name "sermon-pipeline-bot"
+          git config user.email "actions@github.com"
+          git add feed_items.json
+          git diff --staged --quiet && exit 0
+          git commit -m "TEST: add episode: ${{ github.event.inputs.title }}"
+          for i in 1 2 3 4 5; do
+            git push && exit 0
+            git pull --rebase
+          done
