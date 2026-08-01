@@ -1,0 +1,578 @@
+{
+  "What are you building?": {
+    "style": "A vivid, specific image or scene from everyday life",
+    "done": true
+  },
+  "Eyes Wide Open": {
+    "style": "An observation about a small, specific detail from the sermon that hints at the bigger theme",
+    "done": true
+  },
+  "Profitable Christianity Part One": {
+    "style": "A confession of doubt, struggle, or uncertainty",
+    "done": true
+  },
+  "Protection & Connection": {
+    "style": "A short, punchy sentence fragment rather than a full sentence",
+    "done": true
+  },
+  "I Live Generously": {
+    "style": "Starting mid-thought, as though continuing a conversation already underway",
+    "done": true
+  },
+  "Working Out Salvation": {
+    "style": "A first-person-style admission, as if the preacher is confessing something ('There's a version of faith that...')",
+    "done": true
+  },
+  "What Are You Wearing": {
+    "style": "An invitation to imagine a specific situation",
+    "done": true
+  },
+  "Turning Setbacks into Setups": {
+    "style": "A statement about what most people assume, setting up to challenge it",
+    "done": true
+  },
+  "Impossible Faith": {
+    "style": "A scene-setting description of a moment in Scripture, present tense",
+    "done": true
+  },
+  "Everyday Heroes - Jonah": {
+    "style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
+    "done": true
+  },
+  "Childlike Faith": {
+    "style": "A callback to a well-known saying or verse, reframed unexpectedly",
+    "done": true
+  },
+  "Money's Test": {
+    "style": "A provocative one-line claim that sounds almost like a challenge",
+    "done": true
+  },
+  "Our Father": {
+    "style": "A relatable, mundane everyday scenario that leads into the theme",
+    "done": true
+  },
+  "Keys to an anointed life": {
+    "style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
+    "done": true
+  },
+  "You Need A Bigger Light": {
+    "style": "Naming a common misconception people have, then setting it up to be addressed",
+    "done": true
+  },
+  "Free Flowing Faith": {
+    "style": "A short paraphrase or echo of a line from the passage itself",
+    "done": false
+  },
+  "One Thing - Inquire": {
+    "style": "Describing what it feels like to be in the situation the sermon addresses, without naming the theme yet",
+    "done": false
+  },
+  "2. Letters from Jesus": {
+    "style": "A bold, flat statement of fact or claim, no question mark",
+    "done": false
+  },
+  "Power & Authority": {
+    "style": "Directly naming a paradox or tension in the theme",
+    "done": false
+  },
+  "Light It Up": {
+    "style": "A contrast or tension stated plainly ('On one side... on the other...')",
+    "done": false
+  },
+  "A Different Spirit": {
+    "style": "A statement about what most people assume, setting up to challenge it",
+    "done": false
+  },
+  "I Live and Learn": {
+    "style": "Directly naming a paradox or tension in the theme",
+    "done": false
+  },
+  "Planted": {
+    "style": "A vivid, specific image or scene from everyday life",
+    "done": false
+  },
+  "Change Of Heart - 9th February 2025": {
+    "style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
+    "done": false
+  },
+  "A Seat At The Table": {
+    "style": "A short, punchy sentence fragment rather than a full sentence",
+    "done": false
+  },
+  "Three Wise Women": {
+    "style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
+    "done": false
+  },
+  "One Thing - Seek": {
+    "style": "A short paraphrase or echo of a line from the passage itself",
+    "done": false
+  },
+  "Uncomfortable Comfortability": {
+    "style": "Starting mid-thought, as though continuing a conversation already underway",
+    "done": false
+  },
+  "Time to Change your Clothes": {
+    "style": "An invitation to imagine a specific situation",
+    "done": false
+  },
+  "He Tore Down The Walls": {
+    "style": "A relatable, mundane everyday scenario that leads into the theme",
+    "done": false
+  },
+  "What are we doing with what we've been given?": {
+    "style": "Naming a common misconception people have, then setting it up to be addressed",
+    "done": false
+  },
+  "Kingdom-Centric Financial Habits": {
+    "style": "A confession of doubt, struggle, or uncertainty",
+    "done": false
+  },
+  "Gospel Participants": {
+    "style": "A provocative one-line claim that sounds almost like a challenge",
+    "done": false
+  },
+  "Passion of the Cross": {
+    "style": "An observation about a small, specific detail from the sermon that hints at the bigger theme",
+    "done": false
+  },
+  "I Live for Others": {
+    "style": "A scene-setting description of a moment in Scripture, present tense",
+    "done": false
+  },
+  "LOOPHOLES": {
+    "style": "A first-person-style admission, as if the preacher is confessing something ('There's a version of faith that...')",
+    "done": false
+  },
+  "Losing Control": {
+    "style": "Describing what it feels like to be in the situation the sermon addresses, without naming the theme yet",
+    "done": false
+  },
+  "Authority to Grow": {
+    "style": "A callback to a well-known saying or verse, reframed unexpectedly",
+    "done": false
+  },
+  "I LIVE by the Spirit": {
+    "style": "A contrast or tension stated plainly ('On one side... on the other...')",
+    "done": false
+  },
+  "Return To Your Shepherd": {
+    "style": "A bold, flat statement of fact or claim, no question mark",
+    "done": false
+  },
+  "How To Stay Close To God": {
+    "style": "A bold, flat statement of fact or claim, no question mark",
+    "done": false
+  },
+  "Altars or Thrones?": {
+    "style": "A relatable, mundane everyday scenario that leads into the theme",
+    "done": false
+  },
+  "Holy Spirit Boldness": {
+    "style": "A confession of doubt, struggle, or uncertainty",
+    "done": false
+  },
+  "Jesus is Part Two": {
+    "style": "A statement about what most people assume, setting up to challenge it",
+    "done": false
+  },
+  "Month of Prayer - Repentance": {
+    "style": "Directly naming a paradox or tension in the theme",
+    "done": false
+  },
+  "Power of Pentecost": {
+    "style": "Starting mid-thought, as though continuing a conversation already underway",
+    "done": false
+  },
+  "Everyday Hero's": {
+    "style": "A provocative one-line claim that sounds almost like a challenge",
+    "done": false
+  },
+  "Month of Prayer - Renewal": {
+    "style": "A vivid, specific image or scene from everyday life",
+    "done": false
+  },
+  "How To Have A Healthy Life Pt.3": {
+    "style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
+    "done": false
+  },
+  "Practical Christianity": {
+    "style": "A short paraphrase or echo of a line from the passage itself",
+    "done": false
+  },
+  "The Time is NOW to Expand": {
+    "style": "A first-person-style admission, as if the preacher is confessing something ('There's a version of faith that...')",
+    "done": false
+  },
+  "How Then Shall We Live?": {
+    "style": "An invitation to imagine a specific situation",
+    "done": false
+  },
+  "Abiding in Christ": {
+    "style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
+    "done": false
+  },
+  "Pentecost": {
+    "style": "A scene-setting description of a moment in Scripture, present tense",
+    "done": false
+  },
+  "How To Have A Healthy Life": {
+    "style": "An observation about a small, specific detail from the sermon that hints at the bigger theme",
+    "done": false
+  },
+  "The Good Portion": {
+    "style": "A callback to a well-known saying or verse, reframed unexpectedly",
+    "done": false
+  },
+  "Communion Service": {
+    "style": "Naming a common misconception people have, then setting it up to be addressed",
+    "done": false
+  },
+  "Beauty for Ashes": {
+    "style": "Describing what it feels like to be in the situation the sermon addresses, without naming the theme yet",
+    "done": false
+  },
+  "Believers Beware": {
+    "style": "A short, punchy sentence fragment rather than a full sentence",
+    "done": false
+  },
+  "One Thing": {
+    "style": "A contrast or tension stated plainly ('On one side... on the other...')",
+    "done": false
+  },
+  "Walk This Way": {
+    "style": "An observation about a small, specific detail from the sermon that hints at the bigger theme",
+    "done": false
+  },
+  "Turning Misery into Mission": {
+    "style": "A callback to a well-known saying or verse, reframed unexpectedly",
+    "done": false
+  },
+  "Battle For the Bible": {
+    "style": "A vivid, specific image or scene from everyday life",
+    "done": false
+  },
+  "Keys to Breakthough": {
+    "style": "A scene-setting description of a moment in Scripture, present tense",
+    "done": false
+  },
+  "Promise of the Holy Spirit": {
+    "style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
+    "done": false
+  },
+  "You Will Be My Witnesses": {
+    "style": "Directly naming a paradox or tension in the theme",
+    "done": false
+  },
+  "Peripheral Christianity": {
+    "style": "Describing what it feels like to be in the situation the sermon addresses, without naming the theme yet",
+    "done": false
+  },
+  "Money's Pathway": {
+    "style": "Naming a common misconception people have, then setting it up to be addressed",
+    "done": false
+  },
+  "Revival Ready": {
+    "style": "An invitation to imagine a specific situation",
+    "done": false
+  },
+  "Passion of the Church": {
+    "style": "A short, punchy sentence fragment rather than a full sentence",
+    "done": false
+  },
+  "The Church People or Place": {
+    "style": "A first-person-style admission, as if the preacher is confessing something ('There's a version of faith that...')",
+    "done": false
+  },
+  "Warnings Against Sin": {
+    "style": "A confession of doubt, struggle, or uncertainty",
+    "done": false
+  },
+  "Profitable Christianity Part Two": {
+    "style": "A contrast or tension stated plainly ('On one side... on the other...')",
+    "done": false
+  },
+  "I live with an Honouring Heart": {
+    "style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
+    "done": false
+  },
+  "Enter His Presence": {
+    "style": "A provocative one-line claim that sounds almost like a challenge",
+    "done": false
+  },
+  "Joy in Suffering": {
+    "style": "A short paraphrase or echo of a line from the passage itself",
+    "done": false
+  },
+  "The Lord, my Shepherd": {
+    "style": "A bold, flat statement of fact or claim, no question mark",
+    "done": false
+  },
+  "3. The Throne Room of Heaven": {
+    "style": "A statement about what most people assume, setting up to challenge it",
+    "done": false
+  },
+  "Triumph over Temptation": {
+    "style": "Starting mid-thought, as though continuing a conversation already underway",
+    "done": false
+  },
+  "Tools of the Trade": {
+    "style": "A relatable, mundane everyday scenario that leads into the theme",
+    "done": false
+  },
+  "Return, Rebuild, Renew - The Book of Ezra": {
+    "style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
+    "done": false
+  },
+  "Send Me, I'll Go": {
+    "style": "A confession of doubt, struggle, or uncertainty",
+    "done": false
+  },
+  "Travel Light": {
+    "style": "A short, punchy sentence fragment rather than a full sentence",
+    "done": false
+  },
+  "Harvest Church Sunday Service 10:30AM": {
+    "style": "A provocative one-line claim that sounds almost like a challenge",
+    "done": false
+  },
+  "I Live a life of Faith": {
+    "style": "Naming a common misconception people have, then setting it up to be addressed",
+    "done": false
+  },
+  "The Power of Passed On Promises": {
+    "style": "A contrast or tension stated plainly ('On one side... on the other...')",
+    "done": false
+  },
+  "Just One Small Jar Of Oil": {
+    "style": "A callback to a well-known saying or verse, reframed unexpectedly",
+    "done": false
+  },
+  "Your Words Are Your Weapons": {
+    "style": "A relatable, mundane everyday scenario that leads into the theme",
+    "done": false
+  },
+  "Pentecost Sunday": {
+    "style": "An observation about a small, specific detail from the sermon that hints at the bigger theme",
+    "done": false
+  },
+  "Joy in the Spirit": {
+    "style": "Describing what it feels like to be in the situation the sermon addresses, without naming the theme yet",
+    "done": false
+  },
+  "The In Between": {
+    "style": "A vivid, specific image or scene from everyday life",
+    "done": false
+  },
+  "An Everyday Faith": {
+    "style": "A statement about what most people assume, setting up to challenge it",
+    "done": false
+  },
+  "The Right Tools": {
+    "style": "A short paraphrase or echo of a line from the passage itself",
+    "done": false
+  },
+  "Faith Under Fire": {
+    "style": "Directly naming a paradox or tension in the theme",
+    "done": false
+  },
+  "Change Your Mind": {
+    "style": "Starting mid-thought, as though continuing a conversation already underway",
+    "done": false
+  },
+  "Strong & Courageous": {
+    "style": "A first-person-style admission, as if the preacher is confessing something ('There's a version of faith that...')",
+    "done": false
+  },
+  "No Turning Back": {
+    "style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
+    "done": false
+  },
+  "Faith that Fails": {
+    "style": "An invitation to imagine a specific situation",
+    "done": false
+  },
+  "Communion - Bread and Blood": {
+    "style": "A bold, flat statement of fact or claim, no question mark",
+    "done": false
+  },
+  "How to Build Your Life": {
+    "style": "A scene-setting description of a moment in Scripture, present tense",
+    "done": false
+  },
+  "Don't Open the Door": {
+    "style": "An observation about a small, specific detail from the sermon that hints at the bigger theme",
+    "done": false
+  },
+  "Opportunity in the Ordinary": {
+    "style": "A callback to a well-known saying or verse, reframed unexpectedly",
+    "done": false
+  },
+  "The War Within": {
+    "style": "A bold, flat statement of fact or claim, no question mark",
+    "done": false
+  },
+  "Jesus Over Everything": {
+    "style": "A first-person-style admission, as if the preacher is confessing something ('There's a version of faith that...')",
+    "done": false
+  },
+  "One Thing - Gaze": {
+    "style": "A scene-setting description of a moment in Scripture, present tense",
+    "done": false
+  },
+  "Holy Spirit Fire": {
+    "style": "A short paraphrase or echo of a line from the passage itself",
+    "done": false
+  },
+  "On Mission": {
+    "style": "A relatable, mundane everyday scenario that leads into the theme",
+    "done": false
+  },
+  "One Thing - Ask": {
+    "style": "A contrast or tension stated plainly ('On one side... on the other...')",
+    "done": false
+  },
+  "The Power of the Spirit": {
+    "style": "Starting mid-thought, as though continuing a conversation already underway",
+    "done": false
+  },
+  "Clothed in Love": {
+    "style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
+    "done": false
+  },
+  "Jesus is Part Three": {
+    "style": "Directly naming a paradox or tension in the theme",
+    "done": false
+  },
+  "Just Blew it": {
+    "style": "A vivid, specific image or scene from everyday life",
+    "done": false
+  },
+  "The War of Wisdom": {
+    "style": "An invitation to imagine a specific situation",
+    "done": false
+  },
+  "Closer": {
+    "style": "A short, punchy sentence fragment rather than a full sentence",
+    "done": false
+  },
+  "Month of Prayer - Radical Devotion": {
+    "style": "A provocative one-line claim that sounds almost like a challenge",
+    "done": false
+  },
+  "Purposeful Christianity": {
+    "style": "A statement about what most people assume, setting up to challenge it",
+    "done": false
+  },
+  "How To Have A Healthy Life Pt.2": {
+    "style": "Describing what it feels like to be in the situation the sermon addresses, without naming the theme yet",
+    "done": false
+  },
+  "I Live on the Bright Side": {
+    "style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
+    "done": false
+  },
+  "Good Friday Service": {
+    "style": "A confession of doubt, struggle, or uncertainty",
+    "done": false
+  },
+  "Youth Take Over": {
+    "style": "Naming a common misconception people have, then setting it up to be addressed",
+    "done": false
+  },
+  "Do Not Resist the Holy Spirit": {
+    "style": "A confession of doubt, struggle, or uncertainty",
+    "done": false
+  },
+  "The Baptism of the Holy Spirit": {
+    "style": "A callback to a well-known saying or verse, reframed unexpectedly",
+    "done": false
+  },
+  "Everyday Heroes - Joseph": {
+    "style": "A bold, flat statement of fact or claim, no question mark",
+    "done": false
+  },
+  "Everyday Heroes - Noah": {
+    "style": "A short paraphrase or echo of a line from the passage itself",
+    "done": false
+  },
+  "Jesus is": {
+    "style": "Describing what it feels like to be in the situation the sermon addresses, without naming the theme yet",
+    "done": false
+  },
+  "Mature Christianity": {
+    "style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
+    "done": false
+  },
+  "Taming the Tongue": {
+    "style": "Directly naming a paradox or tension in the theme",
+    "done": false
+  },
+  "Money's Spirit and Surrender": {
+    "style": "An observation about a small, specific detail from the sermon that hints at the bigger theme",
+    "done": false
+  },
+  "I Live Through the Word": {
+    "style": "A short, punchy sentence fragment rather than a full sentence",
+    "done": false
+  },
+  "One Thing - Dwell": {
+    "style": "A vivid, specific image or scene from everyday life",
+    "done": false
+  },
+  "The Table": {
+    "style": "A relatable, mundane everyday scenario that leads into the theme",
+    "done": false
+  },
+  "Don't Drink the Poison": {
+    "style": "Starting mid-thought, as though continuing a conversation already underway",
+    "done": false
+  },
+  "Resurrection Sunday": {
+    "style": "A statement about what most people assume, setting up to challenge it",
+    "done": false
+  },
+  "It Is Well": {
+    "style": "A contrast or tension stated plainly ('On one side... on the other...')",
+    "done": false
+  },
+  "How To Come Close To God": {
+    "style": "A provocative one-line claim that sounds almost like a challenge",
+    "done": false
+  },
+  "The Prayer of Faith": {
+    "style": "A first-person-style admission, as if the preacher is confessing something ('There's a version of faith that...')",
+    "done": false
+  },
+  "Money Misunderstandings": {
+    "style": "A scene-setting description of a moment in Scripture, present tense",
+    "done": false
+  },
+  "What do you Want": {
+    "style": "An invitation to imagine a specific situation",
+    "done": false
+  },
+  "Pass It On": {
+    "style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
+    "done": false
+  },
+  "The Practice of the Presence": {
+    "style": "Naming a common misconception people have, then setting it up to be addressed",
+    "done": false
+  },
+  "But, This I Know": {
+    "style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
+    "done": false
+  },
+  "Present in the Presence": {
+    "style": "A vivid, specific image or scene from everyday life",
+    "done": false
+  },
+  "Passion of the Christ": {
+    "style": "Naming a common misconception people have, then setting it up to be addressed",
+    "done": false
+  },
+  "Open": {
+    "style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
+    "done": false
+  }
+}
