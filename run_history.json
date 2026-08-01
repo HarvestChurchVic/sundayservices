@@ -7,5 +7,14 @@
     "detail": null,
     "run_url": "https://github.com/HarvestChurchVic/sundayservices/actions/runs/30721137491",
     "timestamp": "2026-08-01T22:23:53.058651+00:00"
+  },
+  {
+    "status": "duplicate_skipped",
+    "title": "The Guarantee",
+    "sermon_date": "2026-07-19",
+    "speaker": "Andrew Cartledge",
+    "detail": "Matching title and date already in feed_items.json",
+    "run_url": null,
+    "timestamp": "2026-08-01T22:26:24.440767+00:00"
   }
 ]
