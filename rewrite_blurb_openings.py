@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """
-Rewrites the openings of AI-generated blurbs so they don't all sound the
-same ("What if...", "Have you ever...", etc.). Targets ONLY episodes listed
-in blurb_progress.log (i.e. blurbs generate_missing_blurbs.py actually
-wrote) - manually-edited blurbs and original Subsplash text are left alone.
+Rewrites the openings AND closing call-to-action lines of AI-generated
+blurbs so they don't all sound the same ("What if..." openings, "Hit play
+and find out..." endings). Targets ONLY episodes listed in
+blurb_progress.log (i.e. blurbs generate_missing_blurbs.py actually wrote)
+- manually-edited blurbs and original Subsplash text are left alone.
 
-Each targeted episode gets assigned one of 20 distinct opening techniques,
-shuffled so styles don't repeat in a predictable pattern across the batch.
+Each targeted episode gets assigned one of 20 opening techniques and one
+of 20 closing techniques (independently shuffled, so they don't correlate).
+Episodes that already had their opening fixed in an earlier run only get
+their closing touched up this time - the opening is left as-is rather than
+re-rolled, to avoid wasted work and unnecessary drift from a version
+that's already good.
+
 Assignments and completion state are saved to blurb_rewrite_state.json so
 this is resumable/batchable exactly like generate_missing_blurbs.py.
 
@@ -23,7 +29,6 @@ Usage:
 import argparse
 import json
 import random
-import time
 from pathlib import Path
 
 FEED_ITEMS_PATH = Path("feed_items.json")
@@ -60,6 +65,48 @@ OPENING_STYLES = [
     "felt like...')",
 ]
 
+CLOSING_STYLES = [
+    "A short two or three word fragment, not a full sentence ('Worth the "
+    "listen.')",
+    "A quiet, understated invitation with no urgency ('Settle in and let "
+    "this one land.')",
+    "Naming what the listener will walk away with, without saying 'hit "
+    "play'",
+    "A statement of confidence about how the episode will affect them "
+    "('You won't hear [theme] the same way again.')",
+    "An open-ended prompt that leaves something unresolved on purpose",
+    "A line acknowledging hesitation, low-pressure tone ('No pressure. "
+    "Just press play when you're ready.')",
+    "Framing it as something to revisit, not just a one-time listen",
+    "A direct address naming who this episode is especially for",
+    "A simple, grounded sign-off with no embellishment",
+    "A line about timing or relevance to right now",
+    "A challenge phrased gently, daring the listener to sit with it",
+    "Referencing a specific detail or phrase from the episode itself as a "
+    "teaser for the ending",
+    "A short rhetorical question that isn't answered",
+    "An observation about what listening might cost or ask of them",
+    "A line suggesting they might want to talk about it with someone after",
+    "A warm, plain statement instead of an instruction ('This one's for "
+    "anyone who needs to hear it.')",
+    "A callback to the opening line or image, bringing it full circle",
+    "A single evocative word or short phrase standing alone as the final "
+    "line",
+    "A line about curiosity rather than urgency ('See where it takes you.')",
+    "A plainly stated instruction using a verb other than 'hit play' or "
+    "'press play' (e.g. 'Have a listen', 'Tune in', 'Give it a go')",
+]
+
+CLEANUP_INSTRUCTIONS = """Also strip out anything that isn't actual blurb content: remove any \
+markdown formatting (bold asterisks, headers), remove any leading meta \
+text like "Here are the show notes for this episode:" or similar preamble, \
+and remove the episode title if it's been repeated at the top. The output \
+should be pure prose ready to publish as-is."""
+
+SHARED_CONSTRAINTS = """Keep the warm, direct, conversational tone. Avoid Christian cliches like \
+"life-changing" or "powerful message." Do not use em dashes; use commas, \
+colons, or separate sentences instead."""
+
 
 def load_ai_generated_titles() -> set:
     if not PROGRESS_LOG_PATH.exists():
@@ -73,7 +120,40 @@ def load_ai_generated_titles() -> set:
     return titles
 
 
-def rewrite_opening(client, old_blurb: str, style: str, title: str, speaker: str) -> str:
+def migrate_old_state(state: dict) -> dict:
+    """Converts old {"style":..., "done":...} entries to the new
+    opening/closing structure, treating old "done" as opening_done."""
+    for title, v in state.items():
+        if "opening_style" not in v:
+            v["opening_style"] = v.pop("style", None)
+            v["opening_done"] = v.pop("done", False)
+            v["closing_style"] = None
+            v["closing_done"] = False
+    return state
+
+
+def assign_styles(state: dict, titles: list):
+    """Assigns opening and closing styles (independently shuffled) to any
+    titles that don't have one yet."""
+    for style_key, style_list in (("opening_style", OPENING_STYLES),
+                                    ("closing_style", CLOSING_STYLES)):
+        need = [t for t in titles if state.get(t, {}).get(style_key) is None]
+        if not need:
+            continue
+        pool = []
+        while len(pool) < len(need):
+            batch = style_list[:]
+            random.shuffle(batch)
+            pool.extend(batch)
+        pool = pool[:len(need)]
+        for t, style in zip(need, pool):
+            state.setdefault(t, {"opening_done": False, "closing_done": False,
+                                  "opening_style": None, "closing_style": None})
+            state[t][style_key] = style
+
+
+def rewrite_full(client, old_blurb: str, opening_style: str, closing_style: str,
+                  title: str, speaker: str) -> str:
     prompt = f"""Here is a podcast episode blurb for a sermon titled "{title}" \
 by {speaker}:
 
@@ -81,25 +161,56 @@ by {speaker}:
 
 Rewrite this blurb, keeping the same information, tone, and roughly the \
 same length and structure (hook, then a teasing middle section, then a \
-one-sentence call to action). Change ONLY the way it opens - use this \
-specific opening technique instead of whatever it currently uses:
+closing line). Change how it OPENS - use this technique:
 
-{style}
+{opening_style}
+
+And change how it CLOSES (the final call-to-action line) - use this \
+technique instead of whatever it currently uses:
+
+{closing_style}
 
 Do not start with "What if" or any rhetorical question phrased that way. \
-Keep the warm, direct, conversational tone. Avoid Christian cliches like \
-"life-changing" or "powerful message." Do not use em dashes; use commas, \
-colons, or separate sentences instead.
+Do not end with "Hit play and find out..." or "Press play and see where \
+this one takes you" - those are overused; use the closing technique above \
+instead.
 
-Also strip out anything that isn't actual blurb content: remove any \
-markdown formatting (bold asterisks, headers), remove any leading meta \
-text like "Here are the show notes for this episode:" or similar preamble, \
-and remove the episode title if it's been repeated at the top. The output \
-should be pure prose ready to publish as-is, starting directly with the \
-new opening.
+{SHARED_CONSTRAINTS}
+
+{CLEANUP_INSTRUCTIONS}
 
 Return ONLY the rewritten blurb text, nothing else - no preamble, no \
 explanation."""
+
+    resp = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=500,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return "".join(b.text for b in resp.content if hasattr(b, "text")).strip()
+
+
+def rewrite_closing_only(client, old_blurb: str, closing_style: str,
+                          title: str, speaker: str) -> str:
+    prompt = f"""Here is a podcast episode blurb for a sermon titled "{title}" \
+by {speaker}. The opening is already good and must NOT change:
+
+{old_blurb}
+
+Rewrite ONLY the final call-to-action line (the closing sentence). Leave \
+every other sentence exactly as it is, word for word. Replace just the \
+closing line using this technique:
+
+{closing_style}
+
+Do not end with "Hit play and find out..." or "Press play and see where \
+this one takes you" - those are overused; use the closing technique above \
+instead.
+
+{SHARED_CONSTRAINTS}
+
+Return the full blurb with only the closing line changed - nothing else, \
+no preamble, no explanation."""
 
     resp = client.messages.create(
         model="claude-sonnet-4-6",
@@ -120,33 +231,24 @@ def main():
     print(f"Found {len(ai_titles)} AI-generated blurbs in {PROGRESS_LOG_PATH}.")
 
     state = json.loads(STATE_PATH.read_text()) if STATE_PATH.exists() else {}
+    state = migrate_old_state(state)
 
-    # Assign a style to every AI-generated episode up front (once), so the
-    # same episode always gets the same style even across resumed runs.
     entries_by_title = {e["title"]: e for e in entries}
     targets = [t for t in ai_titles if t in entries_by_title]
 
-    unassigned = [t for t in targets if t not in state]
-    if unassigned:
-        # Shuffle a repeating cycle of styles so assignment is varied and
-        # doesn't cluster the same style together.
-        pool = []
-        while len(pool) < len(unassigned):
-            batch = OPENING_STYLES[:]
-            random.shuffle(batch)
-            pool.extend(batch)
-        pool = pool[:len(unassigned)]
-        for t, style in zip(unassigned, pool):
-            state[t] = {"style": style, "done": False}
-        STATE_PATH.write_text(json.dumps(state, indent=2))
+    assign_styles(state, targets)
+    STATE_PATH.write_text(json.dumps(state, indent=2))
 
-    todo = [t for t in targets if not state[t]["done"]]
-    print(f"{len(todo)} blurb(s) still need their opening rewritten "
+    todo = [t for t in targets
+            if not (state[t]["opening_done"] and state[t]["closing_done"])]
+    print(f"{len(todo)} blurb(s) still need work "
           f"out of {len(targets)} AI-generated total.")
 
     if args.dry_run:
         for t in todo[:20]:
-            print(f"  {t}  ->  {state[t]['style'][:60]}...")
+            s = state[t]
+            mode = "full rewrite" if not s["opening_done"] else "closing only"
+            print(f"  {t}  ->  [{mode}]")
         return
 
     if not todo:
@@ -161,23 +263,33 @@ def main():
 
     for i, title in enumerate(todo, 1):
         ep = entries_by_title[title]
-        style = state[title]["style"]
+        s = state[title]
         print(f"\n[{i}/{len(todo)}] {title}")
-        print(f"  Style: {style[:70]}...")
 
-        new_blurb = rewrite_opening(client, ep["blurb"], style, title, ep.get("speaker", ""))
-        print(f"  New opening: {new_blurb[:100]}...")
+        if not s["opening_done"]:
+            print(f"  Full rewrite - opening: {s['opening_style'][:55]}...")
+            print(f"                 closing: {s['closing_style'][:55]}...")
+            new_blurb = rewrite_full(client, ep["blurb"], s["opening_style"],
+                                      s["closing_style"], title, ep.get("speaker", ""))
+        else:
+            print(f"  Closing only: {s['closing_style'][:60]}...")
+            new_blurb = rewrite_closing_only(client, ep["blurb"], s["closing_style"],
+                                              title, ep.get("speaker", ""))
+
+        print(f"  Result: {new_blurb[:100]}...")
 
         ep["blurb"] = new_blurb
-        state[title]["done"] = True
+        s["opening_done"] = True
+        s["closing_done"] = True
 
         FEED_ITEMS_PATH.write_text(json.dumps(entries, indent=2))
         STATE_PATH.write_text(json.dumps(state, indent=2))
 
-    remaining = len(targets) - sum(1 for t in targets if state[t]["done"])
+    remaining = len(targets) - sum(
+        1 for t in targets if state[t]["opening_done"] and state[t]["closing_done"])
     print(f"\nBatch complete. {remaining} remaining.")
     if remaining == 0:
-        print("All AI-generated blurbs now have varied openings.")
+        print("All AI-generated blurbs now have varied openings and closings.")
     print("Next: commit feed_items.json and blurb_rewrite_state.json, then "
           "run migrate_subsplash_feed.py --fix-existing-blurbs to rebuild "
           "and re-upload feed.xml.")
