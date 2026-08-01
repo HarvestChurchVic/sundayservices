@@ -27,6 +27,7 @@ Requires config.env in the same folder (copy config.example.env and fill it in).
 import argparse
 import mimetypes
 import os
+import random
 import smtplib
 import subprocess
 import sys
@@ -141,7 +142,10 @@ approach: {hook_style}
 A short paragraph of 3 to 4 sentences that teases what the viewer will \
 encounter without spoiling it. Use language that creates anticipation.
 
-A one sentence call to action inviting the viewer to watch.
+A one sentence call to action inviting the viewer to watch. For this line, \
+use this specific approach: {closing_style} Do not end with "Hit play and \
+find out..." or "Press play and see where this one takes you" — those are \
+overused; use the closing technique above instead.
 
 Then on a new line, write exactly the marker "===HASHTAGS===" on its own \
 line, followed by a list of 10 to 15 relevant hashtags using title case, \
@@ -152,39 +156,114 @@ Tone: warm, direct, and conversational. Avoid Christian cliche phrases like \
 "life-changing" or "powerful message." Write as if you are talking to someone \
 who is spiritually curious but not necessarily a regular churchgoer. Do not \
 include timestamps, links, or any placeholder text. Do not use em dashes \
-anywhere; use commas, colons, or separate sentences instead.
+anywhere; use commas, colons, or separate sentences instead. Do not use any \
+markdown formatting (no asterisks, no headers), and do not include any \
+leading meta text like "Here are the show notes for this episode:" — output \
+pure prose ready to publish as-is.
 {recent_openings_section}
 Transcript:
 {transcript}
 """
 
-# Rotated to force variety in the opening hook, since leaving this to chance
-# tends to converge on the same "What if...?" question every time.
-HOOK_STYLES = [
-    "Open with a direct statement or claim (not a question) that creates tension.",
-    "Open with a short, concrete scene or moment from everyday life that relates to the theme.",
-    "Open with a question, but not a \"What if...\" question — try \"Why...\", \"How...\", or \"What happens when...\" instead, or a rhetorical statement framed as a challenge.",
-    "Open by naming a common assumption or belief, then hint that it's about to be challenged.",
-    "Open with a short, punchy one-sentence statement, almost like a headline, then expand on it.",
-    "Open by directly addressing the viewer (\"you\") and a specific situation they might relate to.",
+# Rotated to force variety in the opening hook and closing line, since
+# leaving this to chance tends to converge on the same patterns every time
+# ("What if...?" openings, "Hit play and find out..." closings).
+OPENING_STYLES = [
+    "A direct question aimed at the listener's own life (not 'What if...' - "
+    "something more like 'Have you ever caught yourself...')",
+    "A bold, flat statement of fact or claim, no question mark",
+    "A vivid, specific image or scene from everyday life",
+    "A short paraphrase or echo of a line from the passage itself",
+    "A first-person-style admission, as if the preacher is confessing "
+    "something ('There's a version of faith that...')",
+    "A contrast or tension stated plainly ('On one side... on the other...')",
+    "A relatable, mundane everyday scenario that leads into the theme",
+    "A provocative one-line claim that sounds almost like a challenge",
+    "Naming a common misconception people have, then setting it up to be "
+    "addressed",
+    "A scene-setting description of a moment in Scripture, present tense",
+    "Starting mid-thought, as though continuing a conversation already "
+    "underway",
+    "A confession of doubt, struggle, or uncertainty",
+    "Directly naming a paradox or tension in the theme",
+    "An invitation to imagine a specific situation",
+    "A short, punchy sentence fragment rather than a full sentence",
+    "A callback to a well-known saying or verse, reframed unexpectedly",
+    "Describing what it feels like to be in the situation the sermon "
+    "addresses, without naming the theme yet",
+    "A statement about what most people assume, setting up to challenge it",
+    "An observation about a small, specific detail from the sermon that "
+    "hints at the bigger theme",
+    "A statement addressed to a specific kind of listener ('If you've ever "
+    "felt like...')",
+]
+
+CLOSING_STYLES = [
+    "A short two or three word fragment, not a full sentence ('Worth the "
+    "listen.')",
+    "A quiet, understated invitation with no urgency ('Settle in and let "
+    "this one land.')",
+    "Naming what the listener will walk away with, without saying 'hit "
+    "play'",
+    "A statement of confidence about how the episode will affect them "
+    "('You won't hear [theme] the same way again.')",
+    "An open-ended prompt that leaves something unresolved on purpose",
+    "A line acknowledging hesitation, low-pressure tone ('No pressure. "
+    "Just press play when you're ready.')",
+    "Framing it as something to revisit, not just a one-time listen",
+    "A direct address naming who this episode is especially for",
+    "A simple, grounded sign-off with no embellishment",
+    "A line about timing or relevance to right now",
+    "A challenge phrased gently, daring the listener to sit with it",
+    "Referencing a specific detail or phrase from the episode itself as a "
+    "teaser for the ending",
+    "A short rhetorical question that isn't answered",
+    "An observation about what listening might cost or ask of them",
+    "A line suggesting they might want to talk about it with someone after",
+    "A warm, plain statement instead of an instruction ('This one's for "
+    "anyone who needs to hear it.')",
+    "A callback to the opening line or image, bringing it full circle",
+    "A single evocative word or short phrase standing alone as the final "
+    "line",
+    "A line about curiosity rather than urgency ('See where it takes you.')",
+    "A plainly stated instruction using a verb other than 'hit play' or "
+    "'press play' (e.g. 'Have a listen', 'Tune in', 'Give it a go')",
 ]
 
 
+def _pick_style(style_list, last_used):
+    """Picks a random style, avoiding whichever one was used last time (if
+    known), so two consecutive episodes can't accidentally get the same
+    style even by chance."""
+    pool = [s for s in style_list if s != last_used] or style_list
+    return random.choice(pool)
+
+
 def generate_blurb(transcript: str, title: str, speaker: str, recent_episodes: list = None) -> dict:
-    """Returns {"blurb": ..., "hashtags": ..., "full": ...} — "blurb" is the
-    hook/teaser/CTA text with no hashtags (used for the podcast feed
-    description), "hashtags" is just the hashtag list, and "full" is both
-    combined (used for YouTube, where hashtags are wanted).
+    """Returns {"blurb": ..., "hashtags": ..., "full": ..., "opening_style": ...,
+    "closing_style": ...} — "blurb" is the hook/teaser/CTA text with no
+    hashtags (used for the podcast feed description), "hashtags" is just
+    the hashtag list, and "full" is both combined (used for YouTube, where
+    hashtags are wanted). opening_style/closing_style record which style
+    was used, so the next run can avoid repeating it immediately.
 
     recent_episodes: the last several episode dicts (most recent last), used
-    to steer the model away from repeating the same opening pattern."""
+    to steer the model away from repeating the same opening pattern, and to
+    look up the most recently used opening/closing styles."""
     import anthropic
-    import random
 
     print("Generating blurb via Claude API...")
     client = anthropic.Anthropic(api_key=env("ANTHROPIC_API_KEY"))
 
-    hook_style = random.choice(HOOK_STYLES)
+    last_opening_style = None
+    last_closing_style = None
+    if recent_episodes:
+        last_ep = recent_episodes[-1]
+        last_opening_style = last_ep.get("opening_style")
+        last_closing_style = last_ep.get("closing_style")
+
+    hook_style = _pick_style(OPENING_STYLES, last_opening_style)
+    closing_style = _pick_style(CLOSING_STYLES, last_closing_style)
 
     recent_openings_section = ""
     if recent_episodes:
@@ -207,6 +286,7 @@ def generate_blurb(transcript: str, title: str, speaker: str, recent_episodes: l
         speaker=speaker,
         transcript=transcript,
         hook_style=hook_style,
+        closing_style=closing_style,
         recent_openings_section=recent_openings_section,
     )
     message = client.messages.create(
@@ -233,6 +313,8 @@ def generate_blurb(transcript: str, title: str, speaker: str, recent_episodes: l
         "blurb": blurb_text,
         "hashtags": hashtags_text,
         "full": full_clean,
+        "opening_style": hook_style,
+        "closing_style": closing_style,
     }
 
 
@@ -410,6 +492,8 @@ def main():
         "pub_date": datetime.strptime(args.sermon_date, "%Y-%m-%d")
             .replace(tzinfo=timezone.utc).isoformat(),
         "image_url": image_url,
+        "opening_style": blurb_parts["opening_style"],
+        "closing_style": blurb_parts["closing_style"],
     })
     save_episode_log(episodes)
     feed_url = build_and_upload_feed(episodes)
