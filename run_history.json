@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "status": "failure",
+    "title": "Strong and Courageous",
+    "sermon_date": "2026-07-25",
+    "speaker": "Andrew Cartledge",
+    "detail": null,
+    "run_url": "https://github.com/HarvestChurchVic/sundayservices/actions/runs/30721137491",
+    "timestamp": "2026-08-01T22:23:53.058651+00:00"
+  }
+]
