@@ -43,6 +43,7 @@ from feedgen.feed import FeedGenerator
 WORKDIR = Path(__file__).parent
 DOWNLOADS = WORKDIR / "downloads"
 FEED_STATE_FILE = WORKDIR / "feed_items.json"  # local record of published episodes
+RUN_HISTORY_FILE = WORKDIR / "run_history.json"  # record of every run attempt, for the status page
 
 load_dotenv(WORKDIR / "config.env")
 
@@ -385,6 +386,68 @@ def save_episode_log(episodes: list[dict]) -> None:
     FEED_STATE_FILE.write_text(json.dumps(episodes, indent=2))
 
 
+def load_run_history() -> list[dict]:
+    if RUN_HISTORY_FILE.exists():
+        return json.loads(RUN_HISTORY_FILE.read_text())
+    return []
+
+
+def record_run(status: str, title: str, sermon_date: str, speaker: str = None,
+                detail: str = None, run_url: str = None) -> None:
+    """Appends one entry to the run history, used by the status page.
+    status is one of: "success", "duplicate_skipped". (Failures are recorded
+    separately at the workflow level, since a failure can happen before this
+    script even starts, e.g. if pip install itself fails.)"""
+    history = load_run_history()
+    history.append({
+        "status": status,
+        "title": title,
+        "sermon_date": sermon_date,
+        "speaker": speaker,
+        "detail": detail,
+        "run_url": run_url,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    })
+    RUN_HISTORY_FILE.write_text(json.dumps(history, indent=2))
+
+
+def find_duplicate_episode(episodes: list[dict], title: str, sermon_date: str) -> dict | None:
+    """Checks whether an episode with the same title and date has already
+    been processed, so the same sermon never gets published twice even if
+    the form is accidentally submitted more than once."""
+    normalized_title = title.strip().lower()
+    for ep in episodes:
+        if ep.get("title", "").strip().lower() == normalized_title and \
+                ep.get("pub_date", "").startswith(sermon_date):
+            return ep
+    return None
+
+
+def send_duplicate_notice_email(title: str, speaker: str, sermon_date: str, existing_mp3_url: str) -> None:
+    print("Duplicate detected — sending notice email instead of processing.")
+    body = f"""This sermon looks like it may already have been processed, so nothing new was uploaded or added to the feed.
+
+Title: {title}
+Speaker: {speaker}
+Sermon date: {sermon_date}
+
+An episode with this same title and date is already in the feed:
+{existing_mp3_url}
+
+If this really is a new, different sermon, try submitting again with a
+slightly different title (e.g. include the campus or series name), since
+the duplicate check matches on title and date together.
+"""
+    msg = MIMEText(body)
+    msg["Subject"] = f"Skipped (looks like a duplicate): {title}"
+    msg["From"] = env("EMAIL_FROM")
+    msg["To"] = env("EMAIL_TO")
+    with smtplib.SMTP(env("SMTP_HOST"), int(env("SMTP_PORT", default="587"))) as server:
+        server.starttls()
+        server.login(env("SMTP_USERNAME"), env("SMTP_PASSWORD"))
+        server.send_message(msg)
+
+
 def build_and_upload_feed(episodes: list[dict]) -> str:
     fg = FeedGenerator()
     fg.load_extension("podcast")
@@ -474,9 +537,17 @@ def main():
 
     slug = f"{args.sermon_date}-{slugify(args.title)}"
 
+    episodes = load_episode_log()
+    existing = find_duplicate_episode(episodes, args.title, args.sermon_date)
+    if existing:
+        send_duplicate_notice_email(args.title, args.speaker, args.sermon_date, existing.get("mp3_url", "unknown"))
+        record_run("duplicate_skipped", args.title, args.sermon_date, args.speaker,
+                   detail="Matching title and date already in feed_items.json")
+        print("Duplicate detected. Nothing was processed. Exiting cleanly.")
+        return
+
     mp3_path = download_and_extract(args.youtube_url, slug, source_key=args.source_file)
     transcript = transcribe(mp3_path)
-    episodes = load_episode_log()
     blurb_parts = generate_blurb(transcript, args.title, args.speaker, recent_episodes=episodes)
 
     mp3_url = upload_to_r2(mp3_path, f"audio/{slug}.mp3")
@@ -510,6 +581,8 @@ def main():
 
     print("\nDone.")
     print(f"Feed URL (submit this once to Apple Podcasts Connect / Spotify for Podcasters): {feed_url}")
+
+    record_run("success", args.title, args.sermon_date, args.speaker, detail=mp3_url)
 
 
 if __name__ == "__main__":

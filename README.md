@@ -100,6 +100,21 @@ fields, etc.), the change needs to be re-embedded into `worker.js` and
 redeployed — the form's HTML is baked into the Worker's code as a constant,
 not fetched separately.
 
+## Built-in safety nets
+
+- **Duplicate protection**: before doing any actual work, the pipeline checks
+  whether an episode with the same title and date has already been
+  processed. If so, nothing is downloaded, transcribed, or re-published —
+  you just get an email saying it looks like a duplicate.
+- **Failure alerts**: if a run fails for any reason, at any stage (even
+  before the pipeline itself starts, e.g. a dependency install failure),
+  an email goes out automatically with what was being processed and a
+  direct link to the failed run's log.
+- **Status page**: `form.hrvstpdcst.com/status` (same passphrase as the
+  form) shows a simple table of every run — success, failure, or skipped
+  duplicate — so anyone on the team can check "did this actually go
+  through?" without needing GitHub access.
+
 ## First time only: submitting the feed
 
 Once the first episode has been processed, submit the feed URL

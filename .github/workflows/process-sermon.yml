@@ -110,19 +110,52 @@ jobs:
           done
           echo "Failed to push debug log after retries — continuing anyway, this is non-fatal."
 
-      # feed_items.json needs to persist between runs so the RSS feed keeps
-      # accumulating episodes rather than resetting each time. Retries with
-      # rebase in case another run's commit landed first (e.g. two form
-      # submissions close together, or a form submission overlapping a
-      # manually-triggered run) — without this, the losing run's episode
-      # would silently vanish from the feed despite the email already
-      # confirming success.
+      # Fires on ANY failure above, even if pipeline.py never got to run at
+      # all (e.g. a dependency install failure) — so a broken run is never
+      # silent. This is a separate step/script rather than relying on
+      # pipeline.py to report its own failure, since it needs to work even
+      # when pipeline.py itself is the thing that's broken.
+      - name: Send failure alert
+        if: failure()
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          SERMON_TITLE: ${{ github.event.inputs.title }}
+          SERMON_SPEAKER: ${{ github.event.inputs.speaker }}
+          SERMON_DATE: ${{ github.event.inputs.sermon_date }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python send_failure_alert.py
+
+      - name: Commit run history (failure)
+        if: failure()
+        run: |
+          git config user.name "sermon-pipeline-bot"
+          git config user.email "actions@github.com"
+          git add run_history.json
+          git diff --staged --quiet && exit 0
+          git commit -m "Record failed run ${{ github.run_id }}"
+          for i in 1 2 3 4 5; do
+            git push && exit 0
+            git pull --rebase
+          done
+
+      # feed_items.json and run_history.json need to persist between runs so
+      # the RSS feed and status page keep accumulating rather than resetting
+      # each time. Retries with rebase in case another run's commit landed
+      # first (e.g. two form submissions close together, or a form
+      # submission overlapping a manually-triggered run) — without this, the
+      # losing run's episode would silently vanish from the feed despite the
+      # email already confirming success.
       - name: Commit updated episode log
         if: success()
         run: |
           git config user.name "sermon-pipeline-bot"
           git config user.email "actions@github.com"
-          git add feed_items.json
+          git add feed_items.json run_history.json
           git diff --staged --quiet && exit 0
           git commit -m "Add episode: ${{ github.event.inputs.title }}"
           for i in 1 2 3 4 5; do

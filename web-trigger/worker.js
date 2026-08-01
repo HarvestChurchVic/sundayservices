@@ -202,6 +202,98 @@ form.addEventListener("submit", async (e) => {
 </html>
 `;
 
+const STATUS_HTML = `<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sermon Pipeline Status</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; text-align: center; }
+  #gate { text-align: center; margin-top: 40px; }
+  #gate input { padding: 10px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; width: 220px; }
+  #gate button { padding: 10px 20px; margin-left: 8px; background: #2b6cb0; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+  table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+  th { color: #666; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
+  .status-success { color: #22543d; }
+  .status-failure { color: #822727; }
+  .status-duplicate_skipped { color: #975a16; }
+  a { color: #2b6cb0; }
+  #error { color: #822727; text-align: center; margin-top: 16px; }
+  #empty { text-align: center; color: #999; margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<h1>Sermon Pipeline Status</h1>
+
+<div id="gate">
+  <input type="password" id="passphrase" placeholder="Passphrase">
+  <button id="loadBtn">View Status</button>
+  <div id="error"></div>
+</div>
+
+<div id="results" style="display:none;">
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Title</th><th>Speaker</th><th>Status</th><th>Run</th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div id="empty" style="display:none;">No runs recorded yet.</div>
+</div>
+
+<script>
+document.getElementById("loadBtn").addEventListener("click", async () => {
+  const passphrase = document.getElementById("passphrase").value;
+  const errorDiv = document.getElementById("error");
+  errorDiv.textContent = "";
+  try {
+    const resp = await fetch("/status-data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ passphrase }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      errorDiv.textContent = data.error || "Something went wrong.";
+      return;
+    }
+    const rows = document.getElementById("rows");
+    rows.innerHTML = "";
+    const runs = (data.runs || []).slice().reverse();
+    if (runs.length === 0) {
+      document.getElementById("empty").style.display = "block";
+    } else {
+      document.getElementById("empty").style.display = "none";
+      for (const run of runs) {
+        const tr = document.createElement("tr");
+        const icon = run.status === "success" ? "✅" : run.status === "duplicate_skipped" ? "⚠️" : "❌";
+        const label = run.status === "success" ? "Success" : run.status === "duplicate_skipped" ? "Skipped (duplicate)" : "Failed";
+        tr.innerHTML = \`
+          <td>\${run.sermon_date || ""}</td>
+          <td>\${run.title || ""}</td>
+          <td>\${run.speaker || ""}</td>
+          <td class="status-\${run.status}">\${icon} \${label}</td>
+          <td>\${run.run_url ? \`<a href="\${run.run_url}" target="_blank">View</a>\` : ""}</td>
+        \`;
+        rows.appendChild(tr);
+      }
+    }
+    document.getElementById("gate").style.display = "none";
+    document.getElementById("results").style.display = "block";
+  } catch (err) {
+    errorDiv.textContent = "Error: " + err.message;
+  }
+});
+</script>
+
+</body>
+</html>
+`;
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -216,6 +308,11 @@ export default {
     }
 
     try {
+      if (request.method === "GET" && url.pathname === "/status") {
+        return new Response(STATUS_HTML, {
+          headers: { "Content-Type": "text/html; charset=UTF-8" },
+        });
+      }
       if (request.method === "GET") {
         return new Response(FORM_HTML, {
           headers: { "Content-Type": "text/html; charset=UTF-8" },
@@ -226,6 +323,9 @@ export default {
       }
       if (url.pathname === "/trigger" && request.method === "POST") {
         return await handleTrigger(request, env, corsHeaders);
+      }
+      if (url.pathname === "/status-data" && request.method === "POST") {
+        return await handleStatusData(request, env, corsHeaders);
       }
       return new Response("Not found", { status: 404, headers: corsHeaders });
     } catch (err) {
@@ -298,6 +398,25 @@ async function handleTrigger(request, env, corsHeaders) {
   }
 
   return jsonResponse({ ok: true }, 200, corsHeaders);
+}
+
+async function handleStatusData(request, env, corsHeaders) {
+  const { passphrase } = await request.json();
+  if (env.FORM_PASSPHRASE && passphrase !== env.FORM_PASSPHRASE) {
+    return jsonResponse({ error: "Incorrect passphrase" }, 401, corsHeaders);
+  }
+
+  const historyUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/run_history.json`;
+  const resp = await fetch(historyUrl, { cf: { cacheTtl: 0 } });
+  if (!resp.ok) {
+    // No runs recorded yet is not an error — just means an empty list
+    if (resp.status === 404) {
+      return jsonResponse({ runs: [] }, 200, corsHeaders);
+    }
+    return jsonResponse({ error: `Failed to load run history: ${resp.status}` }, 500, corsHeaders);
+  }
+  const runs = await resp.json();
+  return jsonResponse({ runs }, 200, corsHeaders);
 }
 
 function jsonResponse(obj, status, corsHeaders) {
