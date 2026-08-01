@@ -101,16 +101,34 @@ jobs:
           git config user.name "sermon-pipeline-bot"
           git config user.email "actions@github.com"
           git add pipeline_debug.log
-          git diff --staged --quiet || git commit -m "Debug log from run ${{ github.run_id }}"
-          git push
+          git diff --staged --quiet && exit 0
+          git commit -m "Debug log from run ${{ github.run_id }}"
+          for i in 1 2 3 4 5; do
+            git push && exit 0
+            echo "Push rejected (probably a concurrent run) — retrying ($i/5)..."
+            git pull --rebase
+          done
+          echo "Failed to push debug log after retries — continuing anyway, this is non-fatal."
 
       # feed_items.json needs to persist between runs so the RSS feed keeps
-      # accumulating episodes rather than resetting each time
+      # accumulating episodes rather than resetting each time. Retries with
+      # rebase in case another run's commit landed first (e.g. two form
+      # submissions close together, or a form submission overlapping a
+      # manually-triggered run) — without this, the losing run's episode
+      # would silently vanish from the feed despite the email already
+      # confirming success.
       - name: Commit updated episode log
         if: success()
         run: |
           git config user.name "sermon-pipeline-bot"
           git config user.email "actions@github.com"
           git add feed_items.json
-          git diff --staged --quiet || git commit -m "Add episode: ${{ github.event.inputs.title }}"
-          git push
+          git diff --staged --quiet && exit 0
+          git commit -m "Add episode: ${{ github.event.inputs.title }}"
+          for i in 1 2 3 4 5; do
+            git push && exit 0
+            echo "Push rejected (probably a concurrent run) — retrying ($i/5)..."
+            git pull --rebase
+          done
+          echo "::error::Failed to push feed_items.json after retries — this episode's data may not be reflected in the feed. Manual check needed."
+          exit 1

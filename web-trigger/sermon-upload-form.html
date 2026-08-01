@@ -9,9 +9,10 @@
   h1 { font-size: 1.4rem; text-align: center; }
   .logo { display: block; margin: 0 auto 12px; width: 80px; height: 80px; }
   label { display: block; margin-top: 16px; font-weight: 600; font-size: 0.9rem; }
-  input[type="text"], input[type="date"], input[type="password"] {
+  input[type="text"], input[type="date"], input[type="password"], select {
     width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box;
     border: 1px solid #ccc; border-radius: 4px; font-size: 1rem;
+    background: white;
   }
   input[type="file"] { margin-top: 6px; }
   button {
@@ -37,7 +38,16 @@
   </label>
 
   <label>Speaker
-    <input type="text" id="speaker" required value="Andrew Cartledge">
+    <select id="speaker" required>
+      <option value="Ps Andrew Cartledge">Ps Andrew Cartledge</option>
+      <option value="Ps Rachel Cartledge">Ps Rachel Cartledge</option>
+      <option value="Ps Keith Ainge">Ps Keith Ainge</option>
+      <option value="Ps Caleb McLaughlin">Ps Caleb McLaughlin</option>
+      <option value="Ps Ruth Emmerson">Ps Ruth Emmerson</option>
+      <option value="Ps Ron Spence">Ps Ron Spence</option>
+      <option value="Ps Greg McKinnon">Ps Greg McKinnon</option>
+      <option value="Guest Speaker">Guest Speaker</option>
+    </select>
   </label>
 
   <label>Sermon date
@@ -52,8 +62,8 @@
     <input type="file" id="videoFile" accept="video/*" required>
   </label>
 
-  <label>Thumbnail image <span class="hint">(optional, PNG recommended)</span>
-    <input type="file" id="thumbnailFile" accept="image/png,image/jpeg">
+  <label>Thumbnail image <span class="hint">(optional, PNG only)</span>
+    <input type="file" id="thumbnailFile" accept="image/png">
   </label>
 
   <label>Passphrase
@@ -78,11 +88,11 @@ function setStatus(message, type) {
   statusDiv.className = type;
 }
 
-async function getPresignedUrl(file) {
+async function getPresignedUrl(file, passphrase) {
   const resp = await fetch(`${WORKER_URL}/presign`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ filename: file.name, contentType: file.type }),
+    body: JSON.stringify({ filename: file.name, contentType: file.type, passphrase }),
   });
   if (!resp.ok) throw new Error(`Failed to get upload URL: ${await resp.text()}`);
   return resp.json();
@@ -109,9 +119,20 @@ form.addEventListener("submit", async (e) => {
   const thumbnailFile = document.getElementById("thumbnailFile").files[0];
   const passphrase = document.getElementById("passphrase").value;
 
+  if (thumbnailFile && thumbnailFile.type !== "image/png") {
+    setStatus("Error: the thumbnail must be a PNG file.", "error");
+    submitBtn.disabled = false;
+    return;
+  }
+  if (!passphrase) {
+    setStatus("Error: passphrase is required.", "error");
+    submitBtn.disabled = false;
+    return;
+  }
+
   try {
     setStatus("Requesting upload link for video...", "info");
-    const { uploadUrl: videoUploadUrl, key: videoKey } = await getPresignedUrl(videoFile);
+    const { uploadUrl: videoUploadUrl, key: videoKey } = await getPresignedUrl(videoFile, passphrase);
 
     setStatus(`Uploading video (${(videoFile.size / 1e6).toFixed(0)} MB)... this may take a while.`, "info");
     await uploadFile(videoFile, videoUploadUrl);
@@ -119,7 +140,7 @@ form.addEventListener("submit", async (e) => {
     let thumbnailKey = null;
     if (thumbnailFile) {
       setStatus("Uploading thumbnail...", "info");
-      const { uploadUrl: thumbUploadUrl, key: thumbKey } = await getPresignedUrl(thumbnailFile);
+      const { uploadUrl: thumbUploadUrl, key: thumbKey } = await getPresignedUrl(thumbnailFile, passphrase);
       await uploadFile(thumbnailFile, thumbUploadUrl);
       thumbnailKey = thumbKey;
     }

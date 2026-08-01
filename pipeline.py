@@ -366,7 +366,6 @@ def find_episode_image_url(source_key: str) -> str | None:
     base_url = env("R2_PUBLIC_BASE_URL").rstrip("/")
     print(f"Found episode thumbnail: {image_key}")
     return f"{base_url}/{image_key}"
-    return f"{base_url}/{key}"
 
 
 # ---------------------------------------------------------------------------

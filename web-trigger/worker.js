@@ -3,14 +3,18 @@
  *
  * Serves the upload form itself on any GET request, and handles two POST
  * endpoints:
- *   POST /presign  { filename, contentType }  -> { uploadUrl, key }
+ *   POST /presign  { filename, contentType, passphrase }  -> { uploadUrl, key }
  *   POST /trigger  { title, speaker, sermonDate, videoKey, thumbnailKey, passphrase }
  *                  -> triggers the "Process Sermon" GitHub Action
  *
  * Since the form is served from this same Worker/domain, form submissions
  * are same-origin and don't need CORS at all. ALLOWED_ORIGIN/CORS headers
  * are kept only as a fallback in case the form is ever also embedded
- * elsewhere (e.g. still on Church Co).
+ * elsewhere.
+ *
+ * Both /presign and /trigger require the passphrase — /presign hands out
+ * real upload permissions to the bucket, so it needs to be gated too, not
+ * just the final trigger step.
  *
  * Required Worker secrets (set via Cloudflare dashboard -> Worker -> Settings -> Variables):
  *   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME
@@ -34,9 +38,10 @@ const FORM_HTML = `<!DOCTYPE html>
   h1 { font-size: 1.4rem; text-align: center; }
   .logo { display: block; margin: 0 auto 12px; width: 80px; height: 80px; }
   label { display: block; margin-top: 16px; font-weight: 600; font-size: 0.9rem; }
-  input[type="text"], input[type="date"], input[type="password"] {
+  input[type="text"], input[type="date"], input[type="password"], select {
     width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box;
     border: 1px solid #ccc; border-radius: 4px; font-size: 1rem;
+    background: white;
   }
   input[type="file"] { margin-top: 6px; }
   button {
@@ -62,7 +67,16 @@ const FORM_HTML = `<!DOCTYPE html>
   </label>
 
   <label>Speaker
-    <input type="text" id="speaker" required value="Andrew Cartledge">
+    <select id="speaker" required>
+      <option value="Ps Andrew Cartledge">Ps Andrew Cartledge</option>
+      <option value="Ps Rachel Cartledge">Ps Rachel Cartledge</option>
+      <option value="Ps Keith Ainge">Ps Keith Ainge</option>
+      <option value="Ps Caleb McLaughlin">Ps Caleb McLaughlin</option>
+      <option value="Ps Ruth Emmerson">Ps Ruth Emmerson</option>
+      <option value="Ps Ron Spence">Ps Ron Spence</option>
+      <option value="Ps Greg McKinnon">Ps Greg McKinnon</option>
+      <option value="Guest Speaker">Guest Speaker</option>
+    </select>
   </label>
 
   <label>Sermon date
@@ -77,8 +91,8 @@ const FORM_HTML = `<!DOCTYPE html>
     <input type="file" id="videoFile" accept="video/*" required>
   </label>
 
-  <label>Thumbnail image <span class="hint">(optional, PNG recommended)</span>
-    <input type="file" id="thumbnailFile" accept="image/png,image/jpeg">
+  <label>Thumbnail image <span class="hint">(optional, PNG only)</span>
+    <input type="file" id="thumbnailFile" accept="image/png">
   </label>
 
   <label>Passphrase
@@ -103,11 +117,11 @@ function setStatus(message, type) {
   statusDiv.className = type;
 }
 
-async function getPresignedUrl(file) {
+async function getPresignedUrl(file, passphrase) {
   const resp = await fetch(\`\${WORKER_URL}/presign\`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ filename: file.name, contentType: file.type }),
+    body: JSON.stringify({ filename: file.name, contentType: file.type, passphrase }),
   });
   if (!resp.ok) throw new Error(\`Failed to get upload URL: \${await resp.text()}\`);
   return resp.json();
@@ -134,9 +148,20 @@ form.addEventListener("submit", async (e) => {
   const thumbnailFile = document.getElementById("thumbnailFile").files[0];
   const passphrase = document.getElementById("passphrase").value;
 
+  if (thumbnailFile && thumbnailFile.type !== "image/png") {
+    setStatus("Error: the thumbnail must be a PNG file.", "error");
+    submitBtn.disabled = false;
+    return;
+  }
+  if (!passphrase) {
+    setStatus("Error: passphrase is required.", "error");
+    submitBtn.disabled = false;
+    return;
+  }
+
   try {
     setStatus("Requesting upload link for video...", "info");
-    const { uploadUrl: videoUploadUrl, key: videoKey } = await getPresignedUrl(videoFile);
+    const { uploadUrl: videoUploadUrl, key: videoKey } = await getPresignedUrl(videoFile, passphrase);
 
     setStatus(\`Uploading video (\${(videoFile.size / 1e6).toFixed(0)} MB)... this may take a while.\`, "info");
     await uploadFile(videoFile, videoUploadUrl);
@@ -144,7 +169,7 @@ form.addEventListener("submit", async (e) => {
     let thumbnailKey = null;
     if (thumbnailFile) {
       setStatus("Uploading thumbnail...", "info");
-      const { uploadUrl: thumbUploadUrl, key: thumbKey } = await getPresignedUrl(thumbnailFile);
+      const { uploadUrl: thumbUploadUrl, key: thumbKey } = await getPresignedUrl(thumbnailFile, passphrase);
       await uploadFile(thumbnailFile, thumbUploadUrl);
       thumbnailKey = thumbKey;
     }
@@ -213,7 +238,10 @@ export default {
 };
 
 async function handlePresign(request, env, corsHeaders) {
-  const { filename, contentType } = await request.json();
+  const { filename, contentType, passphrase } = await request.json();
+  if (env.FORM_PASSPHRASE && passphrase !== env.FORM_PASSPHRASE) {
+    return jsonResponse({ error: "Incorrect passphrase" }, 401, corsHeaders);
+  }
   if (!filename) {
     return jsonResponse({ error: "filename is required" }, 400, corsHeaders);
   }
@@ -240,6 +268,7 @@ async function handleTrigger(request, env, corsHeaders) {
   if (thumbnailKey) {
     const videoBaseName = videoKey.split("/").pop().replace(/\.[^.]+$/, "");
     await copyR2Object(env, thumbnailKey, `images/${videoBaseName}.png`);
+    await deleteR2Object(env, thumbnailKey);
   }
 
   const dispatchUrl = `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/${GITHUB_WORKFLOW}/dispatches`;
@@ -296,6 +325,15 @@ async function copyR2Object(env, sourceKey, destKey) {
   const resp = await fetch(url, { method: "PUT", headers });
   if (!resp.ok) {
     throw new Error(`R2 copy failed: ${resp.status} ${await resp.text()}`);
+  }
+}
+
+async function deleteR2Object(env, key) {
+  const { url, headers } = await signRequest(env, "DELETE", key, { "x-delete-marker": "true" });
+  const resp = await fetch(url, { method: "DELETE", headers });
+  if (!resp.ok) {
+    // Not fatal — a leftover raw file is harmless clutter, not a broken run
+    console.log(`Warning: failed to delete ${key}: ${resp.status}`);
   }
 }
 
