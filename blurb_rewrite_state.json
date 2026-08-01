@@ -3,13 +3,13 @@
     "opening_style": "A vivid, specific image or scene from everyday life",
     "opening_done": true,
     "closing_style": "A plainly stated instruction using a verb other than 'hit play' or 'press play' (e.g. 'Have a listen', 'Tune in', 'Give it a go')",
-    "closing_done": false
+    "closing_done": true
   },
   "Eyes Wide Open": {
     "opening_style": "An observation about a small, specific detail from the sermon that hints at the bigger theme",
     "opening_done": true,
     "closing_style": "A challenge phrased gently, daring the listener to sit with it",
-    "closing_done": false
+    "closing_done": true
   },
   "Profitable Christianity Part One": {
     "opening_style": "A confession of doubt, struggle, or uncertainty",
@@ -21,37 +21,37 @@
     "opening_style": "A short, punchy sentence fragment rather than a full sentence",
     "opening_done": true,
     "closing_style": "A direct address naming who this episode is especially for",
-    "closing_done": false
+    "closing_done": true
   },
   "I Live Generously": {
     "opening_style": "Starting mid-thought, as though continuing a conversation already underway",
     "opening_done": true,
     "closing_style": "Referencing a specific detail or phrase from the episode itself as a teaser for the ending",
-    "closing_done": false
+    "closing_done": true
   },
   "Working Out Salvation": {
     "opening_style": "A first-person-style admission, as if the preacher is confessing something ('There's a version of faith that...')",
     "opening_done": true,
     "closing_style": "A line acknowledging hesitation, low-pressure tone ('No pressure. Just press play when you're ready.')",
-    "closing_done": false
+    "closing_done": true
   },
   "What Are You Wearing": {
     "opening_style": "An invitation to imagine a specific situation",
     "opening_done": true,
     "closing_style": "A plainly stated instruction using a verb other than 'hit play' or 'press play' (e.g. 'Have a listen', 'Tune in', 'Give it a go')",
-    "closing_done": false
+    "closing_done": true
   },
   "Turning Setbacks into Setups": {
     "opening_style": "A statement about what most people assume, setting up to challenge it",
     "opening_done": true,
     "closing_style": "An open-ended prompt that leaves something unresolved on purpose",
-    "closing_done": false
+    "closing_done": true
   },
   "Impossible Faith": {
     "opening_style": "A scene-setting description of a moment in Scripture, present tense",
     "opening_done": true,
     "closing_style": "A line about curiosity rather than urgency ('See where it takes you.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Everyday Heroes - Jonah": {
     "opening_style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
@@ -63,55 +63,55 @@
     "opening_style": "A callback to a well-known saying or verse, reframed unexpectedly",
     "opening_done": true,
     "closing_style": "A direct address naming who this episode is especially for",
-    "closing_done": false
+    "closing_done": true
   },
   "Money's Test": {
     "opening_style": "A provocative one-line claim that sounds almost like a challenge",
     "opening_done": true,
     "closing_style": "A line about curiosity rather than urgency ('See where it takes you.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Our Father": {
     "opening_style": "A relatable, mundane everyday scenario that leads into the theme",
     "opening_done": true,
     "closing_style": "A short rhetorical question that isn't answered",
-    "closing_done": false
+    "closing_done": true
   },
   "Keys to an anointed life": {
     "opening_style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
     "opening_done": true,
     "closing_style": "A statement of confidence about how the episode will affect them ('You won't hear [theme] the same way again.')",
-    "closing_done": false
+    "closing_done": true
   },
   "You Need A Bigger Light": {
     "opening_style": "Naming a common misconception people have, then setting it up to be addressed",
     "opening_done": true,
     "closing_style": "A challenge phrased gently, daring the listener to sit with it",
-    "closing_done": false
+    "closing_done": true
   },
   "Free Flowing Faith": {
     "opening_style": "A short paraphrase or echo of a line from the passage itself",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A single evocative word or short phrase standing alone as the final line",
-    "closing_done": false
+    "closing_done": true
   },
   "One Thing - Inquire": {
     "opening_style": "Describing what it feels like to be in the situation the sermon addresses, without naming the theme yet",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A single evocative word or short phrase standing alone as the final line",
-    "closing_done": false
+    "closing_done": true
   },
   "2. Letters from Jesus": {
     "opening_style": "A bold, flat statement of fact or claim, no question mark",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A warm, plain statement instead of an instruction ('This one's for anyone who needs to hear it.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Power & Authority": {
     "opening_style": "Directly naming a paradox or tension in the theme",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A simple, grounded sign-off with no embellishment",
-    "closing_done": false
+    "closing_done": true
   },
   "Light It Up": {
     "opening_style": "A contrast or tension stated plainly ('On one side... on the other...')",
@@ -121,21 +121,21 @@
   },
   "A Different Spirit": {
     "opening_style": "A statement about what most people assume, setting up to challenge it",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "Referencing a specific detail or phrase from the episode itself as a teaser for the ending",
-    "closing_done": false
+    "closing_done": true
   },
   "I Live and Learn": {
     "opening_style": "Directly naming a paradox or tension in the theme",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A single evocative word or short phrase standing alone as the final line",
-    "closing_done": false
+    "closing_done": true
   },
   "Planted": {
     "opening_style": "A vivid, specific image or scene from everyday life",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "Naming what the listener will walk away with, without saying 'hit play'",
-    "closing_done": false
+    "closing_done": true
   },
   "Change Of Heart - 9th February 2025": {
     "opening_style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
@@ -145,21 +145,21 @@
   },
   "A Seat At The Table": {
     "opening_style": "A short, punchy sentence fragment rather than a full sentence",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A plainly stated instruction using a verb other than 'hit play' or 'press play' (e.g. 'Have a listen', 'Tune in', 'Give it a go')",
-    "closing_done": false
+    "closing_done": true
   },
   "Three Wise Women": {
     "opening_style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A short two or three word fragment, not a full sentence ('Worth the listen.')",
-    "closing_done": false
+    "closing_done": true
   },
   "One Thing - Seek": {
     "opening_style": "A short paraphrase or echo of a line from the passage itself",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line suggesting they might want to talk about it with someone after",
-    "closing_done": false
+    "closing_done": true
   },
   "Uncomfortable Comfortability": {
     "opening_style": "Starting mid-thought, as though continuing a conversation already underway",
@@ -169,9 +169,9 @@
   },
   "Time to Change your Clothes": {
     "opening_style": "An invitation to imagine a specific situation",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A simple, grounded sign-off with no embellishment",
-    "closing_done": false
+    "closing_done": true
   },
   "He Tore Down The Walls": {
     "opening_style": "A relatable, mundane everyday scenario that leads into the theme",
@@ -181,21 +181,21 @@
   },
   "What are we doing with what we've been given?": {
     "opening_style": "Naming a common misconception people have, then setting it up to be addressed",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line about timing or relevance to right now",
-    "closing_done": false
+    "closing_done": true
   },
   "Kingdom-Centric Financial Habits": {
     "opening_style": "A confession of doubt, struggle, or uncertainty",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A short rhetorical question that isn't answered",
-    "closing_done": false
+    "closing_done": true
   },
   "Gospel Participants": {
     "opening_style": "A provocative one-line claim that sounds almost like a challenge",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A statement of confidence about how the episode will affect them ('You won't hear [theme] the same way again.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Passion of the Cross": {
     "opening_style": "An observation about a small, specific detail from the sermon that hints at the bigger theme",
@@ -211,33 +211,33 @@
   },
   "LOOPHOLES": {
     "opening_style": "A first-person-style admission, as if the preacher is confessing something ('There's a version of faith that...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line suggesting they might want to talk about it with someone after",
-    "closing_done": false
+    "closing_done": true
   },
   "Losing Control": {
     "opening_style": "Describing what it feels like to be in the situation the sermon addresses, without naming the theme yet",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A single evocative word or short phrase standing alone as the final line",
-    "closing_done": false
+    "closing_done": true
   },
   "Authority to Grow": {
     "opening_style": "A callback to a well-known saying or verse, reframed unexpectedly",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A challenge phrased gently, daring the listener to sit with it",
-    "closing_done": false
+    "closing_done": true
   },
   "I LIVE by the Spirit": {
     "opening_style": "A contrast or tension stated plainly ('On one side... on the other...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A callback to the opening line or image, bringing it full circle",
-    "closing_done": false
+    "closing_done": true
   },
   "Return To Your Shepherd": {
     "opening_style": "A bold, flat statement of fact or claim, no question mark",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "Framing it as something to revisit, not just a one-time listen",
-    "closing_done": false
+    "closing_done": true
   },
   "How To Stay Close To God": {
     "opening_style": "A bold, flat statement of fact or claim, no question mark",
@@ -247,9 +247,9 @@
   },
   "Altars or Thrones?": {
     "opening_style": "A relatable, mundane everyday scenario that leads into the theme",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "An observation about what listening might cost or ask of them",
-    "closing_done": false
+    "closing_done": true
   },
   "Holy Spirit Boldness": {
     "opening_style": "A confession of doubt, struggle, or uncertainty",
@@ -259,63 +259,63 @@
   },
   "Jesus is Part Two": {
     "opening_style": "A statement about what most people assume, setting up to challenge it",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "Framing it as something to revisit, not just a one-time listen",
-    "closing_done": false
+    "closing_done": true
   },
   "Month of Prayer - Repentance": {
     "opening_style": "Directly naming a paradox or tension in the theme",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "An open-ended prompt that leaves something unresolved on purpose",
-    "closing_done": false
+    "closing_done": true
   },
   "Power of Pentecost": {
     "opening_style": "Starting mid-thought, as though continuing a conversation already underway",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A short rhetorical question that isn't answered",
-    "closing_done": false
+    "closing_done": true
   },
   "Everyday Hero's": {
     "opening_style": "A provocative one-line claim that sounds almost like a challenge",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "An open-ended prompt that leaves something unresolved on purpose",
-    "closing_done": false
+    "closing_done": true
   },
   "Month of Prayer - Renewal": {
     "opening_style": "A vivid, specific image or scene from everyday life",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A plainly stated instruction using a verb other than 'hit play' or 'press play' (e.g. 'Have a listen', 'Tune in', 'Give it a go')",
-    "closing_done": false
+    "closing_done": true
   },
   "How To Have A Healthy Life Pt.3": {
     "opening_style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line about curiosity rather than urgency ('See where it takes you.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Practical Christianity": {
     "opening_style": "A short paraphrase or echo of a line from the passage itself",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line about curiosity rather than urgency ('See where it takes you.')",
-    "closing_done": false
+    "closing_done": true
   },
   "The Time is NOW to Expand": {
     "opening_style": "A first-person-style admission, as if the preacher is confessing something ('There's a version of faith that...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A quiet, understated invitation with no urgency ('Settle in and let this one land.')",
-    "closing_done": false
+    "closing_done": true
   },
   "How Then Shall We Live?": {
     "opening_style": "An invitation to imagine a specific situation",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line suggesting they might want to talk about it with someone after",
-    "closing_done": false
+    "closing_done": true
   },
   "Abiding in Christ": {
     "opening_style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "Naming what the listener will walk away with, without saying 'hit play'",
-    "closing_done": false
+    "closing_done": true
   },
   "Pentecost": {
     "opening_style": "A scene-setting description of a moment in Scripture, present tense",
@@ -325,21 +325,21 @@
   },
   "How To Have A Healthy Life": {
     "opening_style": "An observation about a small, specific detail from the sermon that hints at the bigger theme",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line suggesting they might want to talk about it with someone after",
-    "closing_done": false
+    "closing_done": true
   },
   "The Good Portion": {
     "opening_style": "A callback to a well-known saying or verse, reframed unexpectedly",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "Naming what the listener will walk away with, without saying 'hit play'",
-    "closing_done": false
+    "closing_done": true
   },
   "Communion Service": {
     "opening_style": "Naming a common misconception people have, then setting it up to be addressed",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line acknowledging hesitation, low-pressure tone ('No pressure. Just press play when you're ready.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Beauty for Ashes": {
     "opening_style": "Describing what it feels like to be in the situation the sermon addresses, without naming the theme yet",
@@ -349,21 +349,21 @@
   },
   "Believers Beware": {
     "opening_style": "A short, punchy sentence fragment rather than a full sentence",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A callback to the opening line or image, bringing it full circle",
-    "closing_done": false
+    "closing_done": true
   },
   "One Thing": {
     "opening_style": "A contrast or tension stated plainly ('On one side... on the other...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A short rhetorical question that isn't answered",
-    "closing_done": false
+    "closing_done": true
   },
   "Walk This Way": {
     "opening_style": "An observation about a small, specific detail from the sermon that hints at the bigger theme",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "Naming what the listener will walk away with, without saying 'hit play'",
-    "closing_done": false
+    "closing_done": true
   },
   "Turning Misery into Mission": {
     "opening_style": "A callback to a well-known saying or verse, reframed unexpectedly",
@@ -373,51 +373,51 @@
   },
   "Battle For the Bible": {
     "opening_style": "A vivid, specific image or scene from everyday life",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A short two or three word fragment, not a full sentence ('Worth the listen.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Keys to Breakthough": {
     "opening_style": "A scene-setting description of a moment in Scripture, present tense",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "An open-ended prompt that leaves something unresolved on purpose",
-    "closing_done": false
+    "closing_done": true
   },
   "Promise of the Holy Spirit": {
     "opening_style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A short two or three word fragment, not a full sentence ('Worth the listen.')",
-    "closing_done": false
+    "closing_done": true
   },
   "You Will Be My Witnesses": {
     "opening_style": "Directly naming a paradox or tension in the theme",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "Referencing a specific detail or phrase from the episode itself as a teaser for the ending",
-    "closing_done": false
+    "closing_done": true
   },
   "Peripheral Christianity": {
     "opening_style": "Describing what it feels like to be in the situation the sermon addresses, without naming the theme yet",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line about curiosity rather than urgency ('See where it takes you.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Money's Pathway": {
     "opening_style": "Naming a common misconception people have, then setting it up to be addressed",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "Framing it as something to revisit, not just a one-time listen",
-    "closing_done": false
+    "closing_done": true
   },
   "Revival Ready": {
     "opening_style": "An invitation to imagine a specific situation",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A short rhetorical question that isn't answered",
-    "closing_done": false
+    "closing_done": true
   },
   "Passion of the Church": {
     "opening_style": "A short, punchy sentence fragment rather than a full sentence",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A short rhetorical question that isn't answered",
-    "closing_done": false
+    "closing_done": true
   },
   "The Church People or Place": {
     "opening_style": "A first-person-style admission, as if the preacher is confessing something ('There's a version of faith that...')",
@@ -433,15 +433,15 @@
   },
   "Profitable Christianity Part Two": {
     "opening_style": "A contrast or tension stated plainly ('On one side... on the other...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "An observation about what listening might cost or ask of them",
-    "closing_done": false
+    "closing_done": true
   },
   "I live with an Honouring Heart": {
     "opening_style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line suggesting they might want to talk about it with someone after",
-    "closing_done": false
+    "closing_done": true
   },
   "Enter His Presence": {
     "opening_style": "A provocative one-line claim that sounds almost like a challenge",
@@ -457,27 +457,27 @@
   },
   "The Lord, my Shepherd": {
     "opening_style": "A bold, flat statement of fact or claim, no question mark",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "Naming what the listener will walk away with, without saying 'hit play'",
-    "closing_done": false
+    "closing_done": true
   },
   "3. The Throne Room of Heaven": {
     "opening_style": "A statement about what most people assume, setting up to challenge it",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A single evocative word or short phrase standing alone as the final line",
-    "closing_done": false
+    "closing_done": true
   },
   "Triumph over Temptation": {
     "opening_style": "Starting mid-thought, as though continuing a conversation already underway",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A callback to the opening line or image, bringing it full circle",
-    "closing_done": false
+    "closing_done": true
   },
   "Tools of the Trade": {
     "opening_style": "A relatable, mundane everyday scenario that leads into the theme",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A simple, grounded sign-off with no embellishment",
-    "closing_done": false
+    "closing_done": true
   },
   "Return, Rebuild, Renew - The Book of Ezra": {
     "opening_style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
@@ -493,57 +493,57 @@
   },
   "Travel Light": {
     "opening_style": "A short, punchy sentence fragment rather than a full sentence",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A warm, plain statement instead of an instruction ('This one's for anyone who needs to hear it.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Harvest Church Sunday Service 10:30AM": {
     "opening_style": "A provocative one-line claim that sounds almost like a challenge",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A direct address naming who this episode is especially for",
-    "closing_done": false
+    "closing_done": true
   },
   "I Live a life of Faith": {
     "opening_style": "Naming a common misconception people have, then setting it up to be addressed",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A warm, plain statement instead of an instruction ('This one's for anyone who needs to hear it.')",
-    "closing_done": false
+    "closing_done": true
   },
   "The Power of Passed On Promises": {
     "opening_style": "A contrast or tension stated plainly ('On one side... on the other...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A simple, grounded sign-off with no embellishment",
-    "closing_done": false
+    "closing_done": true
   },
   "Just One Small Jar Of Oil": {
     "opening_style": "A callback to a well-known saying or verse, reframed unexpectedly",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "An observation about what listening might cost or ask of them",
-    "closing_done": false
+    "closing_done": true
   },
   "Your Words Are Your Weapons": {
     "opening_style": "A relatable, mundane everyday scenario that leads into the theme",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "Framing it as something to revisit, not just a one-time listen",
-    "closing_done": false
+    "closing_done": true
   },
   "Pentecost Sunday": {
     "opening_style": "An observation about a small, specific detail from the sermon that hints at the bigger theme",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "Framing it as something to revisit, not just a one-time listen",
-    "closing_done": false
+    "closing_done": true
   },
   "Joy in the Spirit": {
     "opening_style": "Describing what it feels like to be in the situation the sermon addresses, without naming the theme yet",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A short two or three word fragment, not a full sentence ('Worth the listen.')",
-    "closing_done": false
+    "closing_done": true
   },
   "The In Between": {
     "opening_style": "A vivid, specific image or scene from everyday life",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A plainly stated instruction using a verb other than 'hit play' or 'press play' (e.g. 'Have a listen', 'Tune in', 'Give it a go')",
-    "closing_done": false
+    "closing_done": true
   },
   "An Everyday Faith": {
     "opening_style": "A statement about what most people assume, setting up to challenge it",
@@ -553,9 +553,9 @@
   },
   "The Right Tools": {
     "opening_style": "A short paraphrase or echo of a line from the passage itself",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A statement of confidence about how the episode will affect them ('You won't hear [theme] the same way again.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Faith Under Fire": {
     "opening_style": "Directly naming a paradox or tension in the theme",
@@ -565,117 +565,117 @@
   },
   "Change Your Mind": {
     "opening_style": "Starting mid-thought, as though continuing a conversation already underway",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "Referencing a specific detail or phrase from the episode itself as a teaser for the ending",
-    "closing_done": false
+    "closing_done": true
   },
   "Strong & Courageous": {
     "opening_style": "A first-person-style admission, as if the preacher is confessing something ('There's a version of faith that...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A statement of confidence about how the episode will affect them ('You won't hear [theme] the same way again.')",
-    "closing_done": false
+    "closing_done": true
   },
   "No Turning Back": {
     "opening_style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A quiet, understated invitation with no urgency ('Settle in and let this one land.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Faith that Fails": {
     "opening_style": "An invitation to imagine a specific situation",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "An open-ended prompt that leaves something unresolved on purpose",
-    "closing_done": false
+    "closing_done": true
   },
   "Communion - Bread and Blood": {
     "opening_style": "A bold, flat statement of fact or claim, no question mark",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "An open-ended prompt that leaves something unresolved on purpose",
-    "closing_done": false
+    "closing_done": true
   },
   "How to Build Your Life": {
     "opening_style": "A scene-setting description of a moment in Scripture, present tense",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A short two or three word fragment, not a full sentence ('Worth the listen.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Don't Open the Door": {
     "opening_style": "An observation about a small, specific detail from the sermon that hints at the bigger theme",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A quiet, understated invitation with no urgency ('Settle in and let this one land.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Opportunity in the Ordinary": {
     "opening_style": "A callback to a well-known saying or verse, reframed unexpectedly",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A callback to the opening line or image, bringing it full circle",
-    "closing_done": false
+    "closing_done": true
   },
   "The War Within": {
     "opening_style": "A bold, flat statement of fact or claim, no question mark",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A quiet, understated invitation with no urgency ('Settle in and let this one land.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Jesus Over Everything": {
     "opening_style": "A first-person-style admission, as if the preacher is confessing something ('There's a version of faith that...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A warm, plain statement instead of an instruction ('This one's for anyone who needs to hear it.')",
-    "closing_done": false
+    "closing_done": true
   },
   "One Thing - Gaze": {
     "opening_style": "A scene-setting description of a moment in Scripture, present tense",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A direct address naming who this episode is especially for",
-    "closing_done": false
+    "closing_done": true
   },
   "Holy Spirit Fire": {
     "opening_style": "A short paraphrase or echo of a line from the passage itself",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A callback to the opening line or image, bringing it full circle",
-    "closing_done": false
+    "closing_done": true
   },
   "On Mission": {
     "opening_style": "A relatable, mundane everyday scenario that leads into the theme",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line about timing or relevance to right now",
-    "closing_done": false
+    "closing_done": true
   },
   "One Thing - Ask": {
     "opening_style": "A contrast or tension stated plainly ('On one side... on the other...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A challenge phrased gently, daring the listener to sit with it",
-    "closing_done": false
+    "closing_done": true
   },
   "The Power of the Spirit": {
     "opening_style": "Starting mid-thought, as though continuing a conversation already underway",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "An open-ended prompt that leaves something unresolved on purpose",
-    "closing_done": false
+    "closing_done": true
   },
   "Clothed in Love": {
     "opening_style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "Framing it as something to revisit, not just a one-time listen",
-    "closing_done": false
+    "closing_done": true
   },
   "Jesus is Part Three": {
     "opening_style": "Directly naming a paradox or tension in the theme",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line about timing or relevance to right now",
-    "closing_done": false
+    "closing_done": true
   },
   "Just Blew it": {
     "opening_style": "A vivid, specific image or scene from everyday life",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line acknowledging hesitation, low-pressure tone ('No pressure. Just press play when you're ready.')",
-    "closing_done": false
+    "closing_done": true
   },
   "The War of Wisdom": {
     "opening_style": "An invitation to imagine a specific situation",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A warm, plain statement instead of an instruction ('This one's for anyone who needs to hear it.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Closer": {
     "opening_style": "A short, punchy sentence fragment rather than a full sentence",
@@ -685,15 +685,15 @@
   },
   "Month of Prayer - Radical Devotion": {
     "opening_style": "A provocative one-line claim that sounds almost like a challenge",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A single evocative word or short phrase standing alone as the final line",
-    "closing_done": false
+    "closing_done": true
   },
   "Purposeful Christianity": {
     "opening_style": "A statement about what most people assume, setting up to challenge it",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A direct address naming who this episode is especially for",
-    "closing_done": false
+    "closing_done": true
   },
   "How To Have A Healthy Life Pt.2": {
     "opening_style": "Describing what it feels like to be in the situation the sermon addresses, without naming the theme yet",
@@ -703,39 +703,39 @@
   },
   "I Live on the Bright Side": {
     "opening_style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A warm, plain statement instead of an instruction ('This one's for anyone who needs to hear it.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Good Friday Service": {
     "opening_style": "A confession of doubt, struggle, or uncertainty",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A statement of confidence about how the episode will affect them ('You won't hear [theme] the same way again.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Youth Take Over": {
     "opening_style": "Naming a common misconception people have, then setting it up to be addressed",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "An observation about what listening might cost or ask of them",
-    "closing_done": false
+    "closing_done": true
   },
   "Do Not Resist the Holy Spirit": {
     "opening_style": "A confession of doubt, struggle, or uncertainty",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A challenge phrased gently, daring the listener to sit with it",
-    "closing_done": false
+    "closing_done": true
   },
   "The Baptism of the Holy Spirit": {
     "opening_style": "A callback to a well-known saying or verse, reframed unexpectedly",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A simple, grounded sign-off with no embellishment",
-    "closing_done": false
+    "closing_done": true
   },
   "Everyday Heroes - Joseph": {
     "opening_style": "A bold, flat statement of fact or claim, no question mark",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "Referencing a specific detail or phrase from the episode itself as a teaser for the ending",
-    "closing_done": false
+    "closing_done": true
   },
   "Everyday Heroes - Noah": {
     "opening_style": "A short paraphrase or echo of a line from the passage itself",
@@ -751,9 +751,9 @@
   },
   "Mature Christianity": {
     "opening_style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "An observation about what listening might cost or ask of them",
-    "closing_done": false
+    "closing_done": true
   },
   "Taming the Tongue": {
     "opening_style": "Directly naming a paradox or tension in the theme",
@@ -775,15 +775,15 @@
   },
   "One Thing - Dwell": {
     "opening_style": "A vivid, specific image or scene from everyday life",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line acknowledging hesitation, low-pressure tone ('No pressure. Just press play when you're ready.')",
-    "closing_done": false
+    "closing_done": true
   },
   "The Table": {
     "opening_style": "A relatable, mundane everyday scenario that leads into the theme",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line about timing or relevance to right now",
-    "closing_done": false
+    "closing_done": true
   },
   "Don't Drink the Poison": {
     "opening_style": "Starting mid-thought, as though continuing a conversation already underway",
@@ -793,33 +793,33 @@
   },
   "Resurrection Sunday": {
     "opening_style": "A statement about what most people assume, setting up to challenge it",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A callback to the opening line or image, bringing it full circle",
-    "closing_done": false
+    "closing_done": true
   },
   "It Is Well": {
     "opening_style": "A contrast or tension stated plainly ('On one side... on the other...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "An observation about what listening might cost or ask of them",
-    "closing_done": false
+    "closing_done": true
   },
   "How To Come Close To God": {
     "opening_style": "A provocative one-line claim that sounds almost like a challenge",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line acknowledging hesitation, low-pressure tone ('No pressure. Just press play when you're ready.')",
-    "closing_done": false
+    "closing_done": true
   },
   "The Prayer of Faith": {
     "opening_style": "A first-person-style admission, as if the preacher is confessing something ('There's a version of faith that...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line about timing or relevance to right now",
-    "closing_done": false
+    "closing_done": true
   },
   "Money Misunderstandings": {
     "opening_style": "A scene-setting description of a moment in Scripture, present tense",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "An observation about what listening might cost or ask of them",
-    "closing_done": false
+    "closing_done": true
   },
   "What do you Want": {
     "opening_style": "An invitation to imagine a specific situation",
@@ -829,38 +829,38 @@
   },
   "Pass It On": {
     "opening_style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A short two or three word fragment, not a full sentence ('Worth the listen.')",
-    "closing_done": false
+    "closing_done": true
   },
   "The Practice of the Presence": {
     "opening_style": "Naming a common misconception people have, then setting it up to be addressed",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A line about curiosity rather than urgency ('See where it takes you.')",
-    "closing_done": false
+    "closing_done": true
   },
   "But, This I Know": {
     "opening_style": "A direct question aimed at the listener's own life (not 'What if...' - something more like 'Have you ever caught yourself...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A quiet, understated invitation with no urgency ('Settle in and let this one land.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Present in the Presence": {
     "opening_style": "A vivid, specific image or scene from everyday life",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A challenge phrased gently, daring the listener to sit with it",
-    "closing_done": false
+    "closing_done": true
   },
   "Passion of the Christ": {
     "opening_style": "Naming a common misconception people have, then setting it up to be addressed",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A quiet, understated invitation with no urgency ('Settle in and let this one land.')",
-    "closing_done": false
+    "closing_done": true
   },
   "Open": {
     "opening_style": "A statement addressed to a specific kind of listener ('If you've ever felt like...')",
-    "opening_done": false,
+    "opening_done": true,
     "closing_style": "A statement of confidence about how the episode will affect them ('You won't hear [theme] the same way again.')",
-    "closing_done": false
+    "closing_done": true
   }
 }
