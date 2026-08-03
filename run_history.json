@@ -16,5 +16,14 @@
     "detail": "Matching title and date already in feed_items.json",
     "run_url": null,
     "timestamp": "2026-08-01T22:26:24.440767+00:00"
+  },
+  {
+    "status": "success",
+    "title": "The Foundation",
+    "sermon_date": "2026-08-02",
+    "speaker": "Ps Andrew Cartledge",
+    "detail": "https://hrvstpdcst.com/audio/2026-08-02-the-foundation.mp3",
+    "run_url": null,
+    "timestamp": "2026-08-03T03:05:57.194955+00:00"
   }
 ]
