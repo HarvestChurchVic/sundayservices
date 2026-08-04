@@ -487,8 +487,8 @@ def build_and_upload_feed(episodes: list[dict]) -> str:
 def send_notification_email(context: dict) -> None:
     print("Sending notification email...")
 
-    if context.get("pco_edit_url"):
-        pco_step = f'2. In Planning Center, open the episode and select "{context["speaker"]}" as the speaker:\n   {context["pco_edit_url"]}'
+    if context.get("pco_episode_url"):
+        pco_step = f'2. In Planning Center, select "{context["speaker"]}" as the speaker on this episode:\n   {context["pco_episode_url"]}'
     else:
         pco_step = "2. Planning Center episode was NOT created automatically — add this one manually."
 
@@ -724,7 +724,7 @@ def main():
             image_url=image_url,
             series_id=args.series_id,
         )
-        print(f"Planning Center episode created: {pco_result['edit_url']}")
+        print(f"Planning Center episode created: {pco_result['episode_url']}")
     except Exception as e:
         print(f"Warning: Planning Center episode creation failed ({e}). "
               f"The podcast episode is still live — this just needs to be added "
@@ -738,7 +738,7 @@ def main():
         "feed_url": feed_url,
         "blurb": blurb_parts["full"],  # with hashtags — this is what goes on YouTube
         "image_url": image_url,
-        "pco_edit_url": pco_result["edit_url"] if pco_result else None,
+        "pco_episode_url": pco_result["episode_url"] if pco_result else None,
     })
 
     print("\nDone.")
