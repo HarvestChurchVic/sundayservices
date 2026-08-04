@@ -52,6 +52,7 @@ def main():
                 "video_url": VIDEO_URL,
                 "library_audio_url": AUDIO_URL,
                 "published_to_library_at": f"{SERMON_DATE}T{PUBLISHED_TIME_LOCAL}",
+                "stream_type": "prerecorded",
             },
         },
     }
