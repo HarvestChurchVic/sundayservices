@@ -16,6 +16,7 @@ Defaults to a DRY RUN (prints what it would do, creates nothing). Pass
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -38,6 +39,11 @@ FILE_TO_SERIES = {
 
 def auth():
     return (CLIENT_ID, SECRET)
+
+
+def extract_topic_number(title: str) -> str | None:
+    m = re.search(r"Topic (\d+)", title)
+    return m.group(1) if m else None
 
 
 def get_existing_titles(channel_id: str) -> set:
@@ -111,7 +117,17 @@ def main():
                          help="Comma-separated list of filenames to process (default: all three)")
     parser.add_argument("--published-date", default=None,
                          help="Fixed date (YYYY-MM-DD) to set as published_to_library_at and live time for every episode this run. If omitted, availability is left at Planning Center's default.")
+    parser.add_argument("--topic-dates", default=None,
+                         help="Per-topic dates as 'topicNum:YYYY-MM-DD,topicNum:YYYY-MM-DD,...'. "
+                              "Overrides --published-date for rows whose title contains a matching "
+                              "'Topic N'. Rows with no matching topic number fall back to --published-date.")
     args = parser.parse_args()
+
+    topic_dates = {}
+    if args.topic_dates:
+        for pair in args.topic_dates.split(","):
+            topic_num, date = pair.split(":")
+            topic_dates[topic_num.strip()] = date.strip()
 
     files_to_process = FILE_TO_SERIES
     if args.only_files:
@@ -144,9 +160,12 @@ def main():
                 results["skipped_duplicate"].append(title)
                 continue
 
+            topic_num = extract_topic_number(title)
+            row_date = topic_dates.get(topic_num, args.published_date)
+
             try:
-                result = create_episode(title, link, series_id, args.live, args.published_date)
-                print(f"  {'WOULD CREATE' if not args.live else 'CREATED'}: {title}")
+                result = create_episode(title, link, series_id, args.live, row_date)
+                print(f"  {'WOULD CREATE' if not args.live else 'CREATED'} (date={row_date}): {title}")
                 results["created"].append(result)
             except Exception as e:
                 print(f"  ERROR on '{title}': {e}")

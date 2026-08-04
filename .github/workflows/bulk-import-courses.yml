@@ -16,6 +16,9 @@ on:
       published_date:
         description: "Fixed date (YYYY-MM-DD) for availability, or blank for Planning Center's default"
         required: false
+      topic_dates:
+        description: "Per-topic dates as 'N:YYYY-MM-DD,N:YYYY-MM-DD,...' (overrides published_date for matching rows)"
+        required: false
 
 jobs:
   import:
@@ -48,6 +51,9 @@ jobs:
           fi
           if [ -n "${{ github.event.inputs.published_date }}" ]; then
             ARGS="$ARGS --published-date ${{ github.event.inputs.published_date }}"
+          fi
+          if [ -n "${{ github.event.inputs.topic_dates }}" ]; then
+            ARGS="$ARGS --topic-dates \"${{ github.event.inputs.topic_dates }}\""
           fi
           eval python bulk_import_courses.py $ARGS
 
