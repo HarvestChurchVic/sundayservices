@@ -26,6 +26,7 @@ Step 1: Updating episode with full fields + nested speakership...
     {
       "type": "Speakership",
       "id": "new-speakership-1",
+      "attributes": {},
       "relationships": {
         "speaker": {
           "data": {
@@ -38,14 +39,13 @@ Step 1: Updating episode with full fields + nested speakership...
   ]
 }
 
-Response status: 400
+Response status: 422
 {
   "errors": [
     {
-      "status": "400",
-      "title": "Bad Request",
-      "code": "invalid_resource_payload",
-      "detail": "The included resource 'Speakership' does not include an 'attributes' key."
+      "status": "422",
+      "title": "Forbidden Attribute",
+      "detail": "speakerships_ids cannot be assigned"
     }
   ]
 }
@@ -77,21 +77,37 @@ Step 3: Creating a correct EpisodeTime for the sermon date...
     "type": "EpisodeTime",
     "attributes": {
       "starts_at": "2026-06-14T10:30:00+10:00",
-      "ends_at": "2026-06-14T12:00:00+10:00",
       "video_url": "https://youtu.be/dQw4w9WgXcQ"
     }
   }
 }
 
-Response status: 422
+Response status: 201
 {
-  "errors": [
-    {
-      "status": "422",
-      "title": "Forbidden Attribute",
-      "detail": "ends_at cannot be assigned"
+  "data": {
+    "type": "EpisodeTime",
+    "id": "455503",
+    "attributes": {
+      "caveats": [],
+      "current_state": "over",
+      "current_timestamp": 4423237.783367157,
+      "ends_at": "2026-06-14T02:30:00Z",
+      "starts_at": "2026-06-14T00:30:00Z",
+      "streaming_service": "youtube",
+      "video_embed_code": "<iframe src='https://www.youtube.com/embed/live_stream?channel=UCEe91AtfT5rgxl9rs5O5Rqg' allow='accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share;' allowfullscreen frameborder='0' style='border:none; overflow:hidden; width:100%; height:100%'></iframe>",
+      "video_url": "https://www.youtube.com/embed/live_stream?channel=UCEe91AtfT5rgxl9rs5O5Rqg"
+    },
+    "links": {
+      "self": "https://api.planningcenteronline.com/publishing/v2/episodes/719809/episode_times/455503"
     }
-  ]
+  },
+  "included": [],
+  "meta": {
+    "parent": {
+      "id": "719809",
+      "type": "Episode"
+    }
+  }
 }
 
 Step 4: Final episode state...
@@ -155,7 +171,7 @@ Step 4: Final episode state...
           "url": "/sermons/episodes/719809/edit"
         }
       ],
-      "published_live_at": null,
+      "published_live_at": "2026-06-14T00:15:00Z",
       "published_to_library_at": "2026-07-19T02:00:00Z",
       "sermon_audio": {
         "type": "File",
@@ -171,7 +187,7 @@ Step 4: Final episode state...
       "stream_type": "channel_default_livestream",
       "streaming_service": null,
       "title": "TEST - DELETE ME - Availability Field Check",
-      "updated_at": "2026-08-04T04:38:50Z",
+      "updated_at": "2026-08-04T05:10:37Z",
       "video_embed_code": null,
       "video_thumbnail_url": null,
       "video_url": null
