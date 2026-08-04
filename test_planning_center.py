@@ -71,6 +71,12 @@ def main():
                 for p in get_params:
                     out(f"  param: {p.get('name')}")
 
+    out("\n--- Fetching a real Sunday Sermons episode for edit-link testing ---")
+    real_ep = get("/channels/28229/episodes?per_page=1&order=-created_at")
+    if real_ep.get("data"):
+        ep = real_ep["data"][0]
+        out(f"id={ep['id']}  title={ep['attributes'].get('title')}")
+
     out("\n--- Checking what operations are supported on Speaker records ---")
     spec_resp = requests.get(f"{BASE}/open_api/2024-03-25", auth=(CLIENT_ID, SECRET))
     if spec_resp.ok:
