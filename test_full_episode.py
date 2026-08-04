@@ -50,6 +50,7 @@ def main():
                                 "integration works together: title, summary, series, speaker, and links.",
                 "series_id": SERIES_ID,
                 "video_url": VIDEO_URL,
+                "library_video_url": VIDEO_URL,
                 "library_audio_url": AUDIO_URL,
                 "published_to_library_at": f"{SERMON_DATE}T{PUBLISHED_TIME_LOCAL}",
                 "stream_type": "prerecorded",
@@ -77,7 +78,16 @@ def main():
 
     # 3. Add a proper live time matching the actual sermon date/time, with
     #    a real video URL this time (not blank, which caused the earlier warning)
-    out(output, "\nStep 3: Creating a correct EpisodeTime for the sermon date...")
+    out(output, "\nStep 3: Cleaning up duplicate episode times, then creating one correct one...")
+    existing = requests.get(f"{BASE}/episodes/{EPISODE_ID}/episode_times", auth=(CLIENT_ID, SECRET))
+    if existing.ok:
+        for item in existing.json().get("data", []):
+            del_resp = requests.delete(
+                f"{BASE}/episodes/{EPISODE_ID}/episode_times/{item['id']}",
+                auth=(CLIENT_ID, SECRET),
+            )
+            out(output, f"Deleted existing episode_time id={item['id']} -> {del_resp.status_code}")
+
     time_payload = {
         "data": {
             "type": "EpisodeTime",
