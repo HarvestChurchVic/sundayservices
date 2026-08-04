@@ -1,32 +1,115 @@
-Testing connection to Planning Center Publishing API...
+Response status: 201
 
-Found 8 speaker(s):
-  id=180515070  name=Andrew Cartledge
-  id=180595325  name=Caleb McLaughlin
-  id=180592588  name=Greg McKinnon
-  id=190362143  name=Guest Speaker
-  id=185233127  name=Keith Ainge
-  id=180594564  name=Rachel Cartledge
-  id=185233554  name=Ron Spence
-  id=185233241  name=Ruth Emmerson
-
-Found 2 channel(s):
-  id=28229  name=Sunday Sermons
-  id=29874  name=COURSES
-
-Most recent series (up to 10):
-  id=91281  title=Ephesians
-  id=94143  title=The Guaranteed Christian Life
-  id=95059  title=DISCIPLE
-  id=95060  title=DISCIPLE 2.0
-  id=95156  title=LEAD
-
-Connection test successful — nothing was created or modified.
-
---- Checking what operations are supported on Speaker records ---
-/episodes/{episode_id}/speakerships: ['get', 'summary']
-/episodes/{episode_id}/speakerships/{speakership_id}: ['delete', 'get', 'patch', 'summary']
-/episodes/{episode_id}/speakerships/{speakership_id}/speaker: ['get', 'summary']
-/episodes/{episode_id}/speakerships/{speakership_id}/speaker/{speaker_id}: ['get', 'summary']
-/speakers: ['get', 'summary']
-/speakers/{speaker_id}: ['get', 'summary']
+{
+  "data": {
+    "type": "Episode",
+    "id": "719809",
+    "attributes": {
+      "art": {
+        "type": "File",
+        "id": 809,
+        "attributes": {
+          "name": "809-large.png",
+          "signed_identifier": "",
+          "source": "default",
+          "variants": {
+            "original": "https://dio0bc3q0omo2.cloudfront.net/809-large.png",
+            "original_ratio_small": "https://dio0bc3q0omo2.cloudfront.net/809-large.png",
+            "small": "https://dio0bc3q0omo2.cloudfront.net/809-large.png",
+            "medium": "https://dio0bc3q0omo2.cloudfront.net/809-large.png",
+            "large": "https://dio0bc3q0omo2.cloudfront.net/809-large.png"
+          }
+        }
+      },
+      "church_center_url": "https://harvestchurchvic.churchcenter.com/episodes/719809",
+      "created_at": "2026-08-04T04:31:53Z",
+      "description": "Test episode created to verify published_to_library_at behaviour. Safe to delete.",
+      "library_audio_url": null,
+      "library_streaming_service": null,
+      "library_video_embed_code": null,
+      "library_video_thumbnail_url": null,
+      "library_video_url": null,
+      "needs_library_audio_or_video_url": true,
+      "needs_notes_template": false,
+      "needs_video_url": false,
+      "page_actions": [
+        {
+          "label": "View on Church Center",
+          "verb": "get",
+          "url": "https://harvestchurchvic.churchcenter.com/episodes/719809",
+          "options": {
+            "target": "_blank",
+            "rel": "noopener noreferrer"
+          }
+        },
+        {
+          "label": "Remove from Series",
+          "verb": "patch",
+          "url": "https://api.planningcenteronline.com/publishing/v2/episodes/719809",
+          "payload": {
+            "data": {
+              "attributes": {
+                "series_id": null
+              }
+            }
+          }
+        },
+        {
+          "label": "Edit",
+          "verb": "get",
+          "url": "/sermons/episodes/719809/edit"
+        }
+      ],
+      "published_live_at": "2026-08-09T00:15:00Z",
+      "published_to_library_at": "2026-07-19T02:00:00Z",
+      "sermon_audio": {
+        "type": "File",
+        "id": 719809,
+        "attributes": {
+          "name": "",
+          "signed_identifier": "",
+          "source": "default"
+        }
+      },
+      "services_plan_remote_identifier": null,
+      "services_service_type_remote_identifier": null,
+      "stream_type": "channel_default_livestream",
+      "streaming_service": null,
+      "title": "TEST - DELETE ME - Availability Field Check",
+      "updated_at": "2026-08-04T04:31:53Z",
+      "video_embed_code": null,
+      "video_thumbnail_url": null,
+      "video_url": null
+    },
+    "relationships": {
+      "series": {
+        "data": null
+      }
+    },
+    "links": {
+      "channel": "https://api.planningcenteronline.com/publishing/v2/channels/28229",
+      "episode_resources": "https://api.planningcenteronline.com/publishing/v2/episodes/719809/episode_resources",
+      "episode_times": "https://api.planningcenteronline.com/publishing/v2/episodes/719809/episode_times",
+      "generate_download_url": "https://api.planningcenteronline.com/publishing/v2/episodes/719809/generate_download_url",
+      "note_template": null,
+      "notes": "https://api.planningcenteronline.com/publishing/v2/episodes/719809/notes",
+      "series": null,
+      "speakerships": "https://api.planningcenteronline.com/publishing/v2/episodes/719809/speakerships",
+      "self": "https://api.planningcenteronline.com/publishing/v2/episodes/719809"
+    }
+  },
+  "included": [],
+  "meta": {
+    "can_include": [
+      "channel",
+      "episode_resources",
+      "episode_times",
+      "series",
+      "speakerships"
+    ],
+    "parent": {
+      "id": "513554",
+      "type": "Organization"
+    }
+  }
+}
