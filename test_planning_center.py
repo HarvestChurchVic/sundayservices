@@ -5,6 +5,7 @@ modifies, and deletes nothing — just confirms the credentials work and
 shows what's actually in the account, so we can match speaker names to
 their real IDs before building anything that writes data.
 """
+import json
 import os
 import sys
 
@@ -30,6 +31,9 @@ def main():
     def out(text=""):
         print(text)
         output.append(text)
+        # Write progressively so a later crash doesn't lose earlier output
+        with open("pco_test_output.log", "w") as f:
+            f.write("\n".join(output))
 
     out("Testing connection to Planning Center Publishing API...\n")
 
@@ -65,9 +69,6 @@ def main():
                     out(f"    POST schema: {json.dumps(props)[:800]}")
     else:
         out(f"Could not fetch OpenAPI spec: {spec_resp.status_code}")
-
-    with open("pco_test_output.log", "w") as f:
-        f.write("\n".join(output))
 
 
 if __name__ == "__main__":
