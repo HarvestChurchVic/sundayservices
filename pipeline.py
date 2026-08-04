@@ -28,6 +28,7 @@ import argparse
 import mimetypes
 import os
 import random
+import re
 import smtplib
 import subprocess
 import sys
@@ -487,7 +488,16 @@ def build_and_upload_feed(episodes: list[dict]) -> str:
 def send_notification_email(context: dict) -> None:
     print("Sending notification email...")
 
-    if context.get("pco_episode_url"):
+    if context.get("youtube_edit_url"):
+        youtube_step = f'1. Paste the description below into the YouTube video:\n   {context["youtube_edit_url"]}'
+    elif context.get("youtube_url"):
+        youtube_step = f'1. Paste the description below into the YouTube video:\n   {context["youtube_url"]}\n   (couldn\'t build a direct edit link from this URL — open the video and click Edit)'
+    else:
+        youtube_step = "1. YouTube video not yet published — add the description once it is."
+
+    if context.get("pco_edit_url"):
+        pco_step = f'2. In Planning Center, select "{context["speaker"]}" as the speaker on this episode:\n   {context["pco_edit_url"]}'
+    elif context.get("pco_episode_url"):
         pco_step = f'2. In Planning Center, select "{context["speaker"]}" as the speaker on this episode:\n   {context["pco_episode_url"]}'
     else:
         pco_step = "2. Planning Center episode was NOT created automatically — add this one manually."
@@ -503,8 +513,7 @@ Speaker: {context['speaker']}
 Sermon date: {context['sermon_date']}
 
 --- What's left for you to do ---
-1. Paste the description below into the YouTube video:
-   {context['youtube_url'] if context['youtube_url'] else '(not yet published — add the YouTube link when available)'}
+{youtube_step}
 
 {pco_step}
 
@@ -661,6 +670,25 @@ def create_planning_center_episode(title: str, speaker: str, sermon_date: str,
 # Orchestration
 # ---------------------------------------------------------------------------
 
+def extract_youtube_video_id(url: str) -> str | None:
+    """Handles the common YouTube URL formats: youtu.be/ID, youtube.com/watch?v=ID,
+    youtube.com/shorts/ID, m.youtube.com/watch?v=ID. Returns None if it can't
+    confidently extract an ID, rather than guessing."""
+    if not url:
+        return None
+    patterns = [
+        r"youtu\.be/([A-Za-z0-9_-]{11})",
+        r"[?&]v=([A-Za-z0-9_-]{11})",
+        r"youtube\.com/shorts/([A-Za-z0-9_-]{11})",
+        r"youtube\.com/embed/([A-Za-z0-9_-]{11})",
+    ]
+    for pattern in patterns:
+        m = re.search(pattern, url)
+        if m:
+            return m.group(1)
+    return None
+
+
 def slugify(text: str) -> str:
     return "-".join(text.lower().split())[:60]
 
@@ -730,15 +758,20 @@ def main():
               f"The podcast episode is still live — this just needs to be added "
               f"to Planning Center manually.")
 
+    youtube_video_id = extract_youtube_video_id(args.youtube_url)
+    youtube_edit_url = f"https://studio.youtube.com/video/{youtube_video_id}/edit" if youtube_video_id else None
+
     send_notification_email({
         "title": args.title,
         "speaker": args.speaker,
         "sermon_date": args.sermon_date,
         "youtube_url": args.youtube_url,
+        "youtube_edit_url": youtube_edit_url,
         "feed_url": feed_url,
         "blurb": blurb_parts["full"],  # with hashtags — this is what goes on YouTube
         "image_url": image_url,
         "pco_episode_url": pco_result["episode_url"] if pco_result else None,
+        "pco_edit_url": pco_result["edit_url"] if pco_result else None,
     })
 
     print("\nDone.")
