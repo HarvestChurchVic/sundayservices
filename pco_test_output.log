@@ -9,7 +9,8 @@ Step 1: Updating episode with full fields (speakership attempted separately belo
       "series_id": "94143",
       "video_url": "https://youtu.be/dQw4w9WgXcQ",
       "library_audio_url": "https://hrvstpdcst.com/audio/test-message.mp3",
-      "published_to_library_at": "2026-06-14T12:00:00+10:00"
+      "published_to_library_at": "2026-06-14T12:00:00+10:00",
+      "stream_type": "prerecorded"
     }
   }
 }
@@ -88,12 +89,12 @@ Response status: 200
       },
       "services_plan_remote_identifier": null,
       "services_service_type_remote_identifier": null,
-      "stream_type": "channel_default_livestream",
+      "stream_type": "prerecorded",
       "streaming_service": "youtube",
       "title": "Test",
-      "updated_at": "2026-08-04T05:12:41Z",
+      "updated_at": "2026-08-04T05:16:13Z",
       "video_embed_code": "<iframe src='https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share;' allowfullscreen frameborder='0' style='border:none; overflow:hidden; width:100%; height:100%'></iframe>",
-      "video_thumbnail_url": null,
+      "video_thumbnail_url": "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
       "video_url": "https://youtu.be/dQw4w9WgXcQ"
     },
     "relationships": {
@@ -168,19 +169,19 @@ Response status: 201
 {
   "data": {
     "type": "EpisodeTime",
-    "id": "455504",
+    "id": "455505",
     "attributes": {
       "caveats": [],
       "current_state": "over",
-      "current_timestamp": 4423362.064220667,
+      "current_timestamp": 4423669.533829689,
       "ends_at": "2026-06-14T02:30:00Z",
       "starts_at": "2026-06-14T00:30:00Z",
       "streaming_service": "youtube",
-      "video_embed_code": "<iframe src='https://www.youtube.com/embed/live_stream?channel=UCEe91AtfT5rgxl9rs5O5Rqg' allow='accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share;' allowfullscreen frameborder='0' style='border:none; overflow:hidden; width:100%; height:100%'></iframe>",
-      "video_url": "https://www.youtube.com/embed/live_stream?channel=UCEe91AtfT5rgxl9rs5O5Rqg"
+      "video_embed_code": "<iframe src='https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share;' allowfullscreen frameborder='0' style='border:none; overflow:hidden; width:100%; height:100%'></iframe>",
+      "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
     },
     "links": {
-      "self": "https://api.planningcenteronline.com/publishing/v2/episodes/719809/episode_times/455504"
+      "self": "https://api.planningcenteronline.com/publishing/v2/episodes/719809/episode_times/455505"
     }
   },
   "included": [],
@@ -266,10 +267,10 @@ Step 4: Final episode state...
       },
       "services_plan_remote_identifier": null,
       "services_service_type_remote_identifier": null,
-      "stream_type": "channel_default_livestream",
+      "stream_type": "prerecorded",
       "streaming_service": "youtube",
       "title": "Test",
-      "updated_at": "2026-08-04T05:12:42Z",
+      "updated_at": "2026-08-04T05:17:49Z",
       "video_embed_code": "<iframe src='https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share;' allowfullscreen frameborder='0' style='border:none; overflow:hidden; width:100%; height:100%'></iframe>",
       "video_thumbnail_url": "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
       "video_url": "https://youtu.be/dQw4w9WgXcQ"
