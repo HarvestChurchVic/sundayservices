@@ -486,31 +486,33 @@ def build_and_upload_feed(episodes: list[dict]) -> str:
 
 def send_notification_email(context: dict) -> None:
     print("Sending notification email...")
-    pco_line = (
-        f"Planning Center episode: {context['pco_episode_url']}\n"
-        f"  (One thing left to do there: open it and select \"{context['speaker']}\" as the speaker — "
-        f"Planning Center doesn't allow this to be set automatically.)"
-        if context.get("pco_episode_url")
-        else "Planning Center episode: NOT created automatically (see below) — add this one manually."
-    )
-    body = f"""New sermon processed and hosted.
+
+    if context.get("pco_edit_url"):
+        pco_step = f'2. In Planning Center, open the episode and select "{context["speaker"]}" as the speaker:\n   {context["pco_edit_url"]}'
+    else:
+        pco_step = "2. Planning Center episode was NOT created automatically — add this one manually."
+
+    thumbnail_note = ""
+    if not context.get("image_url"):
+        thumbnail_note = "\nNote: no thumbnail was found for this episode, so the default podcast artwork was used. Upload images/<filename>.png to R2 alongside the video to set one next time."
+
+    body = f"""Sermon processed and published.
 
 Title: {context['title']}
 Speaker: {context['speaker']}
 Sermon date: {context['sermon_date']}
 
-YouTube clip: {context['youtube_url'] if context['youtube_url'] else 'Not yet published — add the YouTube link when available'}
-Hosted MP3: {context['mp3_url']}
-Podcast RSS feed: {context['feed_url']}
-Episode thumbnail: {context['image_url'] if context.get('image_url') else 'None found — using default podcast artwork. Upload images/<filename>.png to R2 alongside the video to set one.'}
-{pco_line}
+--- What's left for you to do ---
+1. Paste the description below into the YouTube video:
+   {context['youtube_url'] if context['youtube_url'] else '(not yet published — add the YouTube link when available)'}
 
---- Blurb ---
+{pco_step}
+
+--- Description to paste into YouTube ---
 {context['blurb']}
 
-Remaining manual steps:
-- Update the YouTube video title, speaker and description with the blurb above
-- In Planning Center, select the correct speaker on the episode (see above)
+--- For reference ---
+Podcast feed: {context['feed_url']}{thumbnail_note}
 """
     msg = MIMEText(body)
     msg["Subject"] = f"Sermon processed: {context['title']}"
@@ -650,6 +652,7 @@ def create_planning_center_episode(title: str, speaker: str, sermon_date: str,
 
     return {
         "episode_url": episode["attributes"]["church_center_url"],
+        "edit_url": f"https://publishing.planningcenteronline.com/sermons/episodes/{episode_id}/edit",
         "speaker_name": speaker,
     }
 
@@ -721,7 +724,7 @@ def main():
             image_url=image_url,
             series_id=args.series_id,
         )
-        print(f"Planning Center episode created: {pco_result['episode_url']}")
+        print(f"Planning Center episode created: {pco_result['edit_url']}")
     except Exception as e:
         print(f"Warning: Planning Center episode creation failed ({e}). "
               f"The podcast episode is still live — this just needs to be added "
@@ -732,11 +735,10 @@ def main():
         "speaker": args.speaker,
         "sermon_date": args.sermon_date,
         "youtube_url": args.youtube_url,
-        "mp3_url": mp3_url,
         "feed_url": feed_url,
         "blurb": blurb_parts["full"],  # with hashtags — this is what goes on YouTube
         "image_url": image_url,
-        "pco_episode_url": pco_result["episode_url"] if pco_result else None,
+        "pco_edit_url": pco_result["edit_url"] if pco_result else None,
     })
 
     print("\nDone.")
