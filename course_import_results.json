@@ -2,12 +2,6 @@
   "created": [
     {
       "dry_run": true,
-      "title": "Welcome to Disciple 2.0",
-      "video_url": "https://www.youtube.com/watch?v=VYl-0bcthr4",
-      "series_id": "95060"
-    },
-    {
-      "dry_run": true,
       "title": "Topic 6, Part 1: Forgiveness, Ps Ken Lee",
       "video_url": "https://www.youtube.com/watch?v=GBKG34iKsuE",
       "series_id": "95060"
@@ -203,6 +197,9 @@
     "Topic 5, Part 1: Overcoming Sin And The Flesh, Ps Sean Stanton",
     "Topic 5, Part 2: Overcoming Sin And The Flesh, Ps Sean Stanton",
     "Topic 5, Part 3: Overcoming Sin And The Flesh, Ps Sean Stanton"
+  ],
+  "skipped_no_topic": [
+    "Welcome to Disciple 2.0"
   ],
   "errors": []
 }
