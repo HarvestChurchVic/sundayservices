@@ -1,9 +1,14 @@
 Testing connection to Planning Center Publishing API...
 
-Found 3 speaker(s):
+Found 8 speaker(s):
   id=180515070  name=Andrew Cartledge
+  id=180595325  name=Caleb McLaughlin
+  id=180592588  name=Greg McKinnon
+  id=190362143  name=Guest Speaker
   id=185233127  name=Keith Ainge
   id=180594564  name=Rachel Cartledge
+  id=185233554  name=Ron Spence
+  id=185233241  name=Ruth Emmerson
 
 Found 2 channel(s):
   id=28229  name=Sunday Sermons
