@@ -58,8 +58,11 @@ def main():
         spec = spec_resp.json()
         paths = spec.get("paths", {})
         for path, methods in paths.items():
-            if "/speakers" in path:
+            if "/speakers" in path or "/episode_times" in path:
                 out(f"{path}: {sorted(methods.keys())}")
+                if "post" in methods:
+                    props = methods["post"].get("requestBody", {}).get("content", {}).get("application/json", {}).get("schema", {})
+                    out(f"    POST schema: {json.dumps(props)[:800]}")
     else:
         out(f"Could not fetch OpenAPI spec: {spec_resp.status_code}")
 
