@@ -25,26 +25,35 @@ def get(path):
 
 
 def main():
-    print("Testing connection to Planning Center Publishing API...\n")
+    output = []
+
+    def out(text=""):
+        print(text)
+        output.append(text)
+
+    out("Testing connection to Planning Center Publishing API...\n")
 
     speakers = get("/speakers")
-    print(f"Found {len(speakers['data'])} speaker(s):")
+    out(f"Found {len(speakers['data'])} speaker(s):")
     for s in speakers["data"]:
-        print(f"  id={s['id']}  name={s['attributes'].get('first_name', '')} {s['attributes'].get('last_name', '')}")
+        out(f"  id={s['id']}  name={s['attributes'].get('first_name', '')} {s['attributes'].get('last_name', '')}")
 
-    print()
+    out()
     channels = get("/channels")
-    print(f"Found {len(channels['data'])} channel(s):")
+    out(f"Found {len(channels['data'])} channel(s):")
     for c in channels["data"]:
-        print(f"  id={c['id']}  name={c['attributes'].get('name', '')}")
+        out(f"  id={c['id']}  name={c['attributes'].get('name', '')}")
 
-    print()
+    out()
     series = get("/series?per_page=10&order=-created_at")
-    print(f"Most recent series (up to 10):")
+    out(f"Most recent series (up to 10):")
     for s in series["data"]:
-        print(f"  id={s['id']}  title={s['attributes'].get('title', '')}")
+        out(f"  id={s['id']}  title={s['attributes'].get('title', '')}")
 
-    print("\nConnection test successful — nothing was created or modified.")
+    out("\nConnection test successful — nothing was created or modified.")
+
+    with open("pco_test_output.log", "w") as f:
+        f.write("\n".join(output))
 
 
 if __name__ == "__main__":
