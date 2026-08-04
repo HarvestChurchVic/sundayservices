@@ -8,6 +8,7 @@ Step 1: Updating episode with full fields (speakership attempted separately belo
       "description": "This is a made-up test description to confirm every field of the integration works together: title, summary, series, speaker, and links.",
       "series_id": "94143",
       "video_url": "https://youtu.be/dQw4w9WgXcQ",
+      "library_video_url": "https://youtu.be/dQw4w9WgXcQ",
       "library_audio_url": "https://hrvstpdcst.com/audio/test-message.mp3",
       "published_to_library_at": "2026-06-14T12:00:00+10:00",
       "stream_type": "prerecorded"
@@ -41,10 +42,10 @@ Response status: 200
       "created_at": "2026-08-04T04:31:53Z",
       "description": "This is a made-up test description to confirm every field of the integration works together: title, summary, series, speaker, and links.",
       "library_audio_url": "https://hrvstpdcst.com/audio/test-message.mp3",
-      "library_streaming_service": null,
-      "library_video_embed_code": null,
+      "library_streaming_service": "youtube",
+      "library_video_embed_code": "<iframe src='https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share;' allowfullscreen frameborder='0' style='border:none; overflow:hidden; width:100%; height:100%'></iframe>",
       "library_video_thumbnail_url": null,
-      "library_video_url": null,
+      "library_video_url": "https://youtu.be/dQw4w9WgXcQ",
       "needs_library_audio_or_video_url": false,
       "needs_notes_template": false,
       "needs_video_url": false,
@@ -92,7 +93,7 @@ Response status: 200
       "stream_type": "prerecorded",
       "streaming_service": "youtube",
       "title": "Test",
-      "updated_at": "2026-08-04T05:16:13Z",
+      "updated_at": "2026-08-04T05:31:34Z",
       "video_embed_code": "<iframe src='https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share;' allowfullscreen frameborder='0' style='border:none; overflow:hidden; width:100%; height:100%'></iframe>",
       "video_thumbnail_url": "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
       "video_url": "https://youtu.be/dQw4w9WgXcQ"
@@ -154,7 +155,10 @@ Status: 200
   }
 }
 
-Step 3: Creating a correct EpisodeTime for the sermon date...
+Step 3: Cleaning up duplicate episode times, then creating one correct one...
+Deleted existing episode_time id=455503 -> 204
+Deleted existing episode_time id=455504 -> 204
+Deleted existing episode_time id=455505 -> 204
 {
   "data": {
     "type": "EpisodeTime",
@@ -169,11 +173,11 @@ Response status: 201
 {
   "data": {
     "type": "EpisodeTime",
-    "id": "455505",
+    "id": "455508",
     "attributes": {
       "caveats": [],
       "current_state": "over",
-      "current_timestamp": 4423669.533829689,
+      "current_timestamp": 4424495.739955425,
       "ends_at": "2026-06-14T02:30:00Z",
       "starts_at": "2026-06-14T00:30:00Z",
       "streaming_service": "youtube",
@@ -181,7 +185,7 @@ Response status: 201
       "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
     },
     "links": {
-      "self": "https://api.planningcenteronline.com/publishing/v2/episodes/719809/episode_times/455505"
+      "self": "https://api.planningcenteronline.com/publishing/v2/episodes/719809/episode_times/455508"
     }
   },
   "included": [],
@@ -219,10 +223,10 @@ Step 4: Final episode state...
       "created_at": "2026-08-04T04:31:53Z",
       "description": "This is a made-up test description to confirm every field of the integration works together: title, summary, series, speaker, and links.",
       "library_audio_url": "https://hrvstpdcst.com/audio/test-message.mp3",
-      "library_streaming_service": null,
-      "library_video_embed_code": null,
-      "library_video_thumbnail_url": null,
-      "library_video_url": null,
+      "library_streaming_service": "youtube",
+      "library_video_embed_code": "<iframe src='https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share;' allowfullscreen frameborder='0' style='border:none; overflow:hidden; width:100%; height:100%'></iframe>",
+      "library_video_thumbnail_url": "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+      "library_video_url": "https://youtu.be/dQw4w9WgXcQ",
       "needs_library_audio_or_video_url": false,
       "needs_notes_template": false,
       "needs_video_url": false,
@@ -270,7 +274,7 @@ Step 4: Final episode state...
       "stream_type": "prerecorded",
       "streaming_service": "youtube",
       "title": "Test",
-      "updated_at": "2026-08-04T05:17:49Z",
+      "updated_at": "2026-08-04T05:31:35Z",
       "video_embed_code": "<iframe src='https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share;' allowfullscreen frameborder='0' style='border:none; overflow:hidden; width:100%; height:100%'></iframe>",
       "video_thumbnail_url": "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
       "video_url": "https://youtu.be/dQw4w9WgXcQ"
@@ -330,9 +334,9 @@ Step 4: Final episode state...
         "ended_at": "2026-08-02T00:15:00Z",
         "episodes_count": 4,
         "published": true,
-        "started_at": "2026-06-14T00:15:00Z",
+        "started_at": "2026-06-14T02:00:00Z",
         "title": "The Guaranteed Christian Life",
-        "updated_at": "2026-08-04T05:12:41Z"
+        "updated_at": "2026-08-04T05:31:35Z"
       },
       "links": {
         "self": "https://api.planningcenteronline.com/publishing/v2/series/94143"
