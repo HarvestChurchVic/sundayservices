@@ -52,6 +52,17 @@ def main():
 
     out("\nConnection test successful — nothing was created or modified.")
 
+    out("\n--- Checking what operations are supported on Speaker records ---")
+    spec_resp = requests.get(f"{BASE}/open_api/2024-03-25", auth=(CLIENT_ID, SECRET))
+    if spec_resp.ok:
+        spec = spec_resp.json()
+        paths = spec.get("paths", {})
+        for path, methods in paths.items():
+            if "/speakers" in path:
+                out(f"{path}: {sorted(methods.keys())}")
+    else:
+        out(f"Could not fetch OpenAPI spec: {spec_resp.status_code}")
+
     with open("pco_test_output.log", "w") as f:
         f.write("\n".join(output))
 
