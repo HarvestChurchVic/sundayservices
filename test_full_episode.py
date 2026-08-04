@@ -63,6 +63,7 @@ def main():
             {
                 "type": "Speakership",
                 "id": "new-speakership-1",
+                "attributes": {},
                 "relationships": {
                     "speaker": {"data": {"type": "Speaker", "id": GUEST_SPEAKER_ID}}
                 },
@@ -96,7 +97,6 @@ def main():
             "type": "EpisodeTime",
             "attributes": {
                 "starts_at": f"{SERMON_DATE}T{SERMON_TIME_LOCAL}",
-                "ends_at": f"{SERMON_DATE}T12:00:00+10:00",
                 "video_url": VIDEO_URL,
             },
         }
