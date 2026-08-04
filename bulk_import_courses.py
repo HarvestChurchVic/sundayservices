@@ -140,7 +140,7 @@ def main():
     existing_titles = get_existing_titles(COURSES_CHANNEL_ID)
     print(f"Found {len(existing_titles)} existing episode(s) already in the COURSES channel.\n")
 
-    results = {"created": [], "skipped_duplicate": [], "errors": []}
+    results = {"created": [], "skipped_duplicate": [], "skipped_no_topic": [], "errors": []}
 
     for filename, series_id in files_to_process.items():
         path = Path("course-imports") / filename
@@ -161,6 +161,12 @@ def main():
                 continue
 
             topic_num = extract_topic_number(title)
+
+            if topic_dates and topic_num is None:
+                print(f"  SKIP (no topic number, not in scope for this topic-dated run): {title}")
+                results["skipped_no_topic"].append(title)
+                continue
+
             row_date = topic_dates.get(topic_num, args.published_date)
 
             try:
@@ -176,6 +182,7 @@ def main():
     print("=== Summary ===")
     print(f"Created (or would create): {len(results['created'])}")
     print(f"Skipped as duplicates: {len(results['skipped_duplicate'])}")
+    print(f"Skipped (no topic number): {len(results['skipped_no_topic'])}")
     print(f"Errors: {len(results['errors'])}")
 
     with open("course_import_results.json", "w") as f:
