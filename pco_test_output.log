@@ -23,6 +23,80 @@ Most recent series (up to 10):
 
 Connection test successful — nothing was created or modified.
 
+--- Checking series-to-channel relationship ---
+{
+  "links": {
+    "self": "https://api.planningcenteronline.com/publishing/v2/series?include=channel&per_page=3",
+    "next": "https://api.planningcenteronline.com/publishing/v2/series?include=channel&offset=3&per_page=3"
+  },
+  "data": [
+    {
+      "type": "Series",
+      "id": "91281",
+      "attributes": {
+        "art": {
+          "type": "File",
+          "id": 30638289,
+          "attributes": {
+            "name": "Ephesians Series.png",
+            "signed_identifier": "eyJfcmFpbHMiOnsiZGF0YSI6MjEwNDgzNiwicHVyIjoiYmxvYl9pZCJ9fQ==--4f448d0e313406d0d3b62af3823e1c10890684a2",
+            "variants": {
+              "original": "https://images.planningcenterusercontent.com/v1/transform.png?bucket=publishing-production-attachments&disposition=inline&expires_at=1788188399&key=organization_513554_vv7ntjfrhogztj0eq20etetryo2v&thumb=2000x1400%3E&signature=dfbeb0c1a8436f6993d2108ed385ec5206e873d5fd96d477f46ad91a1fe57798",
+              "original_ratio_small": "https://images.planningcenterusercontent.com/v1/transform.png?bucket=publishing-production-attachments&disposition=inline&expires_at=1788188399&key=organization_513554_vv7ntjfrhogztj0eq20etetryo2v&thumb=640x360%3E&signature=80641f172230f4e9d33949082f813c0562fa9fc74f1b1195a4ea05b150036b56",
+              "small": "https://images.planningcenterusercontent.com/v1/transform.png?bucket=publishing-production-attachments&disposition=inline&expires_at=1788188399&key=organization_513554_vv7ntjfrhogztj0eq20etetryo2v&thumb=640x360%23&signature=27db2c9af2a1d5a277f68b57b9556daf9bc995ba0b09445e324e014b63b45e4c",
+              "medium": "https://images.planningcenterusercontent.com/v1/transform.png?bucket=publishing-production-attachments&disposition=inline&expires_at=1788188399&key=organization_513554_vv7ntjfrhogztj0eq20etetryo2v&thumb=960x540%23&signature=613b50e918facfdca121a41610699dd88d44e6d12aa50882a94816590a9fee78",
+              "large": "https://images.planningcenterusercontent.com/v1/transform.png?bucket=publishing-production-attachments&disposition=inline&expires_at=1788188399&key=organization_513554_vv7ntjfrhogztj0eq20etetryo2v&thumb=2000x1125%23&signature=e26ee7ab46f533c3c8a13722c4443e62118020fec9ee14dfb7ec592fa3f6f2a7"
+            }
+          }
+        },
+        "church_center_url": "https://harvestchurchvic.churchcenter.com/channels/28229/series/91281",
+        "created_at": "2026-06-12T04:45:15Z",
+        "description": "What if everything you have been looking for \u2014 security, identity, purpo
+
+--- Checking series query params in OpenAPI spec ---
+
+/channels/{channel_id}/series: ['get', 'post', 'summary']
+  param: channel_id
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+
+/series: ['get', 'post', 'summary']
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+
 --- Checking what operations are supported on Speaker records ---
 /episodes/{episode_id}/episode_times: ['description', 'get', 'post', 'summary']
     POST schema: {}
