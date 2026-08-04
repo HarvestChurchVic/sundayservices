@@ -488,40 +488,56 @@ def build_and_upload_feed(episodes: list[dict]) -> str:
 def send_notification_email(context: dict) -> None:
     print("Sending notification email...")
 
-    if context.get("youtube_edit_url"):
-        youtube_step = f'1. Paste the description below into the YouTube video:\n   {context["youtube_edit_url"]}'
-    elif context.get("youtube_url"):
-        youtube_step = f'1. Paste the description below into the YouTube video:\n   {context["youtube_url"]}\n   (couldn\'t build a direct edit link from this URL — open the video and click Edit)'
-    else:
-        youtube_step = "1. YouTube video not yet published — add the description once it is."
+    youtube_edit_line = context.get("youtube_edit_url") or context.get("youtube_url") or "(not yet published)"
+    pco_edit_line = context.get("pco_edit_url") or context.get("pco_episode_url") or "(Planning Center episode was NOT created automatically — add this one manually)"
 
-    if context.get("pco_edit_url"):
-        pco_step = f'2. In Planning Center, select "{context["speaker"]}" as the speaker on this episode:\n   {context["pco_edit_url"]}'
-    elif context.get("pco_episode_url"):
-        pco_step = f'2. In Planning Center, select "{context["speaker"]}" as the speaker on this episode:\n   {context["pco_episode_url"]}'
-    else:
-        pco_step = "2. Planning Center episode was NOT created automatically — add this one manually."
+    body = f"""CONGRATULATIONS!!!
 
-    thumbnail_note = ""
-    if not context.get("image_url"):
-        thumbnail_note = "\nNote: no thumbnail was found for this episode, so the default podcast artwork was used. Upload images/<filename>.png to R2 alongside the video to set one next time."
-
-    body = f"""Sermon processed and published.
+Your recent upload has succeeded
 
 Title: {context['title']}
 Speaker: {context['speaker']}
 Sermon date: {context['sermon_date']}
 
---- What's left for you to do ---
-{youtube_step}
+YouTube clip: {context['youtube_url']}
 
-{pco_step}
+Hosted MP3: {context['mp3_url']}
 
---- Description to paste into YouTube ---
+Podcast RSS feed: {context['feed_url']}
+
+Episode thumbnail: {context['image_url'] if context.get('image_url') else '(none found — using default podcast artwork)'}
+
+BUT THERE IS STILL WORK TO DO!
+
+1. First grab this blurb and copy it
+
+
+--- Blurb ---
 {context['blurb']}
 
---- For reference ---
-Podcast feed: {context['feed_url']}{thumbnail_note}
+2. Then go to the YouTube link below and paste it in the description (while you are there, please make sure the video is in all the right playlists)
+
+
+YOUTUBE EDIT URL
+{youtube_edit_line}
+
+3. Then go to the Planning Center link below and enter the speaker name (we will automate this one day but for now it's on you!)
+
+
+PLANNING CENTER EPISODE EDIT URL
+{pco_edit_line}
+
+(And just in case you forgot) - {context['speaker']}
+
+
+WELL DONE!!
+
+Now go and grab yourself a sweet treat as a reward and pat Ps Andrew on the back for making your life easier.
+
+Yours Truly,
+
+
+Claude
 """
     msg = MIMEText(body)
     msg["Subject"] = f"Sermon processed: {context['title']}"
@@ -767,6 +783,7 @@ def main():
         "sermon_date": args.sermon_date,
         "youtube_url": args.youtube_url,
         "youtube_edit_url": youtube_edit_url,
+        "mp3_url": mp3_url,
         "feed_url": feed_url,
         "blurb": blurb_parts["full"],  # with hashtags — this is what goes on YouTube
         "image_url": image_url,
