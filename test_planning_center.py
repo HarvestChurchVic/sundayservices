@@ -56,6 +56,21 @@ def main():
 
     out("\nConnection test successful — nothing was created or modified.")
 
+    out("\n--- Checking series-to-channel relationship ---")
+    series_full = get("/series?per_page=3&include=channel")
+    out(json.dumps(series_full, indent=2)[:2500])
+
+    out("\n--- Checking series query params in OpenAPI spec ---")
+    spec_resp2 = requests.get(f"{BASE}/open_api/2024-03-25", auth=(CLIENT_ID, SECRET))
+    if spec_resp2.ok:
+        spec2 = spec_resp2.json()
+        for path, methods in spec2.get("paths", {}).items():
+            if path == "/series" or path == "/channels/{channel_id}/series":
+                out(f"\n{path}: {sorted(methods.keys())}")
+                get_params = methods.get("get", {}).get("parameters", [])
+                for p in get_params:
+                    out(f"  param: {p.get('name')}")
+
     out("\n--- Checking what operations are supported on Speaker records ---")
     spec_resp = requests.get(f"{BASE}/open_api/2024-03-25", auth=(CLIENT_ID, SECRET))
     if spec_resp.ok:
