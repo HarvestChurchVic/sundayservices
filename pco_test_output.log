@@ -97,6 +97,9 @@ Connection test successful — nothing was created or modified.
   param: None
   param: None
 
+--- Fetching a real Sunday Sermons episode for edit-link testing ---
+id=686953  title=But God
+
 --- Checking what operations are supported on Speaker records ---
 /episodes/{episode_id}/episode_times: ['description', 'get', 'post', 'summary']
     POST schema: {}
