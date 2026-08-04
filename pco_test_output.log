@@ -17,3 +17,11 @@ Most recent series (up to 10):
   id=95156  title=LEAD
 
 Connection test successful — nothing was created or modified.
+
+--- Checking what operations are supported on Speaker records ---
+/episodes/{episode_id}/speakerships: ['get', 'summary']
+/episodes/{episode_id}/speakerships/{speakership_id}: ['delete', 'get', 'patch', 'summary']
+/episodes/{episode_id}/speakerships/{speakership_id}/speaker: ['get', 'summary']
+/episodes/{episode_id}/speakerships/{speakership_id}/speaker/{speaker_id}: ['get', 'summary']
+/speakers: ['get', 'summary']
+/speakers/{speaker_id}: ['get', 'summary']
