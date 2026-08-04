@@ -10,6 +10,12 @@ on:
         description: "Actually create episodes? (unchecked = dry run, just shows what would happen)"
         type: boolean
         default: false
+      only_files:
+        description: "Comma-separated filenames to process (blank = all three). E.g. LEAD_Playlist.xlsx"
+        required: false
+      published_date:
+        description: "Fixed date (YYYY-MM-DD) for availability, or blank for Planning Center's default"
+        required: false
 
 jobs:
   import:
@@ -33,11 +39,17 @@ jobs:
           PCO_CLIENT_ID: ${{ secrets.PCO_CLIENT_ID }}
           PCO_SECRET: ${{ secrets.PCO_SECRET }}
         run: |
+          ARGS=""
           if [ "${{ github.event.inputs.live }}" = "true" ]; then
-            python bulk_import_courses.py --live
-          else
-            python bulk_import_courses.py
+            ARGS="$ARGS --live"
           fi
+          if [ -n "${{ github.event.inputs.only_files }}" ]; then
+            ARGS="$ARGS --only-files \"${{ github.event.inputs.only_files }}\""
+          fi
+          if [ -n "${{ github.event.inputs.published_date }}" ]; then
+            ARGS="$ARGS --published-date ${{ github.event.inputs.published_date }}"
+          fi
+          eval python bulk_import_courses.py $ARGS
 
       - name: Commit results log
         if: always()

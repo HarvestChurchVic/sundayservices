@@ -55,20 +55,24 @@ def get_existing_titles(channel_id: str) -> set:
     return titles
 
 
-def create_episode(title: str, video_url: str, series_id: str, live: bool) -> dict:
+def create_episode(title: str, video_url: str, series_id: str, live: bool, published_date: str = None) -> dict:
     if not live:
         return {"dry_run": True, "title": title, "video_url": video_url, "series_id": series_id}
+
+    attributes = {
+        "title": title,
+        "video_url": video_url,
+        "library_video_url": video_url,
+        "series_id": series_id,
+        "stream_type": "prerecorded",
+    }
+    if published_date:
+        attributes["published_to_library_at"] = f"{published_date}T12:00:00+10:00"
 
     payload = {
         "data": {
             "type": "Episode",
-            "attributes": {
-                "title": title,
-                "video_url": video_url,
-                "library_video_url": video_url,
-                "series_id": series_id,
-                "stream_type": "prerecorded",
-            },
+            "attributes": attributes,
             "relationships": {
                 "channel": {"data": {"type": "Channel", "id": COURSES_CHANNEL_ID}}
             },
@@ -86,10 +90,14 @@ def create_episode(title: str, video_url: str, series_id: str, live: bool) -> di
         for item in existing_times.json().get("data", []):
             requests.delete(f"{BASE}/episodes/{episode_id}/episode_times/{item['id']}", auth=auth(), timeout=30)
 
+    time_attrs = {"video_url": video_url}
+    if published_date:
+        time_attrs["starts_at"] = f"{published_date}T12:00:00+10:00"
+
     requests.post(
         f"{BASE}/episodes/{episode_id}/episode_times",
         auth=auth(),
-        json={"data": {"type": "EpisodeTime", "attributes": {"video_url": video_url}}},
+        json={"data": {"type": "EpisodeTime", "attributes": time_attrs}},
         timeout=30,
     )
 
@@ -99,7 +107,16 @@ def create_episode(title: str, video_url: str, series_id: str, live: bool) -> di
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true", help="Actually create episodes (default is dry-run)")
+    parser.add_argument("--only-files", default=None,
+                         help="Comma-separated list of filenames to process (default: all three)")
+    parser.add_argument("--published-date", default=None,
+                         help="Fixed date (YYYY-MM-DD) to set as published_to_library_at and live time for every episode this run. If omitted, availability is left at Planning Center's default.")
     args = parser.parse_args()
+
+    files_to_process = FILE_TO_SERIES
+    if args.only_files:
+        wanted = {f.strip() for f in args.only_files.split(",")}
+        files_to_process = {k: v for k, v in FILE_TO_SERIES.items() if k in wanted}
 
     mode = "LIVE" if args.live else "DRY RUN (nothing will be created)"
     print(f"=== Course import — {mode} ===\n")
@@ -109,7 +126,7 @@ def main():
 
     results = {"created": [], "skipped_duplicate": [], "errors": []}
 
-    for filename, series_id in FILE_TO_SERIES.items():
+    for filename, series_id in files_to_process.items():
         path = Path("course-imports") / filename
         if not path.exists():
             print(f"Skipping {filename} — file not found.")
@@ -128,7 +145,7 @@ def main():
                 continue
 
             try:
-                result = create_episode(title, link, series_id, args.live)
+                result = create_episode(title, link, series_id, args.live, args.published_date)
                 print(f"  {'WOULD CREATE' if not args.live else 'CREATED'}: {title}")
                 results["created"].append(result)
             except Exception as e:
