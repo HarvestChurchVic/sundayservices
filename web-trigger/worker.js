@@ -28,6 +28,7 @@
 
 const GITHUB_REPO = "HarvestChurchVic/sundayservices";
 const GITHUB_WORKFLOW = "process-sermon.yml";
+const PCO_CHANNEL_ID = "28229"; // Sunday Sermons
 
 const FORM_HTML = `<!DOCTYPE html>
 <html lang="en-AU">
@@ -434,7 +435,7 @@ async function handleTrigger(request, env, corsHeaders) {
 async function handleSeriesList(env, corsHeaders) {
   const auth = "Basic " + btoa(`${env.PCO_CLIENT_ID}:${env.PCO_SECRET}`);
   const resp = await fetch(
-    "https://api.planningcenteronline.com/publishing/v2/series?per_page=100&order=-created_at",
+    `https://api.planningcenteronline.com/publishing/v2/channels/${PCO_CHANNEL_ID}/series?per_page=100&order=-created_at`,
     { headers: { Authorization: auth } }
   );
   if (!resp.ok) {
