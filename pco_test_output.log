@@ -1,0 +1,19 @@
+Testing connection to Planning Center Publishing API...
+
+Found 3 speaker(s):
+  id=180515070  name=Andrew Cartledge
+  id=185233127  name=Keith Ainge
+  id=180594564  name=Rachel Cartledge
+
+Found 2 channel(s):
+  id=28229  name=Sunday Sermons
+  id=29874  name=COURSES
+
+Most recent series (up to 10):
+  id=91281  title=Ephesians
+  id=94143  title=The Guaranteed Christian Life
+  id=95059  title=DISCIPLE
+  id=95060  title=DISCIPLE 2.0
+  id=95156  title=LEAD
+
+Connection test successful — nothing was created or modified.
