@@ -1,0 +1,50 @@
+name: Bulk Import Courses to Planning Center
+
+# Completely separate from the sermon pipeline — never touches feed_items.json,
+# R2, or the podcast feed. Defaults to a dry run; check "Actually create
+# episodes" to run for real.
+on:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: "Actually create episodes? (unchecked = dry run, just shows what would happen)"
+        type: boolean
+        default: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests pandas openpyxl
+
+      - name: Run import
+        env:
+          PCO_CLIENT_ID: ${{ secrets.PCO_CLIENT_ID }}
+          PCO_SECRET: ${{ secrets.PCO_SECRET }}
+        run: |
+          if [ "${{ github.event.inputs.live }}" = "true" ]; then
+            python bulk_import_courses.py --live
+          else
+            python bulk_import_courses.py
+          fi
+
+      - name: Commit results log
+        if: always()
+        run: |
+          git config user.name "sermon-pipeline-bot"
+          git config user.email "actions@github.com"
+          git add course_import_results.json
+          git diff --staged --quiet && exit 0
+          git commit -m "Course import results"
+          git push
