@@ -53,25 +53,10 @@ def main():
                 "library_audio_url": AUDIO_URL,
                 "published_to_library_at": f"{SERMON_DATE}T{PUBLISHED_TIME_LOCAL}",
             },
-            "relationships": {
-                "speakerships": {
-                    "data": [{"type": "Speakership", "id": "new-speakership-1"}]
-                }
-            },
         },
-        "included": [
-            {
-                "type": "Speakership",
-                "id": "new-speakership-1",
-                "attributes": {},
-                "relationships": {
-                    "speaker": {"data": {"type": "Speaker", "id": GUEST_SPEAKER_ID}}
-                },
-            }
-        ],
     }
 
-    out(output, "Step 1: Updating episode with full fields + nested speakership...")
+    out(output, "Step 1: Updating episode with full fields (speakership attempted separately below)...")
     out(output, json.dumps(episode_payload, indent=2))
     resp = requests.patch(
         f"{BASE}/episodes/{EPISODE_ID}",
