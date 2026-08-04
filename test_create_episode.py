@@ -30,6 +30,7 @@ def main():
                 "title": "TEST - DELETE ME - Availability Field Check",
                 "description": "Test episode created to verify published_to_library_at behaviour. Safe to delete.",
                 "published_to_library_at": "2026-07-19T12:00:00+10:00",
+                "published_live_at": "2026-07-19T12:00:00+10:00",
             },
             "relationships": {
                 "channel": {
