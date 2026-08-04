@@ -50,6 +50,12 @@
     </select>
   </label>
 
+  <label>Series
+    <select id="series">
+      <option value="">No Series</option>
+    </select>
+  </label>
+
   <label>Sermon date
     <input type="date" id="sermonDate" required>
   </label>
@@ -82,6 +88,24 @@ const WORKER_URL = "";
 const form = document.getElementById("sermonForm");
 const statusDiv = document.getElementById("status");
 const submitBtn = document.getElementById("submitBtn");
+const seriesSelect = document.getElementById("series");
+
+async function loadSeries() {
+  try {
+    const resp = await fetch(`${WORKER_URL}/series-list`);
+    if (!resp.ok) return; // non-fatal — form still works with just "No Series"
+    const { series } = await resp.json();
+    for (const s of series) {
+      const opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = s.title;
+      seriesSelect.appendChild(opt);
+    }
+  } catch (err) {
+    // Non-fatal — series list is a convenience, not required to submit
+  }
+}
+loadSeries();
 
 function setStatus(message, type) {
   statusDiv.textContent = message;
@@ -113,6 +137,7 @@ form.addEventListener("submit", async (e) => {
 
   const title = document.getElementById("title").value;
   const speaker = document.getElementById("speaker").value;
+  const seriesId = document.getElementById("series").value;
   const sermonDate = document.getElementById("sermonDate").value;
   const youtubeUrl = document.getElementById("youtubeUrl").value;
   const videoFile = document.getElementById("videoFile").files[0];
@@ -150,7 +175,7 @@ form.addEventListener("submit", async (e) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title, speaker, sermonDate, youtubeUrl,
+        title, speaker, seriesId, sermonDate, youtubeUrl,
         videoKey, thumbnailKey, passphrase,
       }),
     });

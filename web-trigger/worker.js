@@ -22,6 +22,8 @@
  *   FORM_PASSPHRASE      - a simple shared passphrase the form must send, so a
  *                          stumbled-upon URL can't trigger real runs
  *   ALLOWED_ORIGIN       - only needed if embedding the form elsewhere too
+ *   PCO_CLIENT_ID        - Planning Center Personal Access Token app ID, used
+ *   PCO_SECRET           - to populate the Series dropdown from real PCO data
  */
 
 const GITHUB_REPO = "HarvestChurchVic/sundayservices";
@@ -79,6 +81,12 @@ const FORM_HTML = `<!DOCTYPE html>
     </select>
   </label>
 
+  <label>Series
+    <select id="series">
+      <option value="">No Series</option>
+    </select>
+  </label>
+
   <label>Sermon date
     <input type="date" id="sermonDate" required>
   </label>
@@ -111,6 +119,24 @@ const WORKER_URL = "";
 const form = document.getElementById("sermonForm");
 const statusDiv = document.getElementById("status");
 const submitBtn = document.getElementById("submitBtn");
+const seriesSelect = document.getElementById("series");
+
+async function loadSeries() {
+  try {
+    const resp = await fetch(\`\${WORKER_URL}/series-list\`);
+    if (!resp.ok) return; // non-fatal — form still works with just "No Series"
+    const { series } = await resp.json();
+    for (const s of series) {
+      const opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = s.title;
+      seriesSelect.appendChild(opt);
+    }
+  } catch (err) {
+    // Non-fatal — series list is a convenience, not required to submit
+  }
+}
+loadSeries();
 
 function setStatus(message, type) {
   statusDiv.textContent = message;
@@ -142,6 +168,7 @@ form.addEventListener("submit", async (e) => {
 
   const title = document.getElementById("title").value;
   const speaker = document.getElementById("speaker").value;
+  const seriesId = document.getElementById("series").value;
   const sermonDate = document.getElementById("sermonDate").value;
   const youtubeUrl = document.getElementById("youtubeUrl").value;
   const videoFile = document.getElementById("videoFile").files[0];
@@ -179,7 +206,7 @@ form.addEventListener("submit", async (e) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title, speaker, sermonDate, youtubeUrl,
+        title, speaker, seriesId, sermonDate, youtubeUrl,
         videoKey, thumbnailKey, passphrase,
       }),
     });
@@ -313,6 +340,9 @@ export default {
           headers: { "Content-Type": "text/html; charset=UTF-8" },
         });
       }
+      if (request.method === "GET" && url.pathname === "/series-list") {
+        return await handleSeriesList(env, corsHeaders);
+      }
       if (request.method === "GET") {
         return new Response(FORM_HTML, {
           headers: { "Content-Type": "text/html; charset=UTF-8" },
@@ -354,7 +384,7 @@ async function handlePresign(request, env, corsHeaders) {
 
 async function handleTrigger(request, env, corsHeaders) {
   const body = await request.json();
-  const { title, speaker, sermonDate, videoKey, thumbnailKey, passphrase } = body;
+  const { title, speaker, seriesId, sermonDate, videoKey, thumbnailKey, passphrase } = body;
 
   if (env.FORM_PASSPHRASE && passphrase !== env.FORM_PASSPHRASE) {
     return jsonResponse({ error: "Incorrect passphrase" }, 401, corsHeaders);
@@ -388,6 +418,7 @@ async function handleTrigger(request, env, corsHeaders) {
         speaker,
         sermon_date: sermonDate,
         source_file: videoKey,
+        series_id: seriesId || "",
       },
     }),
   });
@@ -398,6 +429,23 @@ async function handleTrigger(request, env, corsHeaders) {
   }
 
   return jsonResponse({ ok: true }, 200, corsHeaders);
+}
+
+async function handleSeriesList(env, corsHeaders) {
+  const auth = "Basic " + btoa(`${env.PCO_CLIENT_ID}:${env.PCO_SECRET}`);
+  const resp = await fetch(
+    "https://api.planningcenteronline.com/publishing/v2/series?per_page=100&order=-created_at",
+    { headers: { Authorization: auth } }
+  );
+  if (!resp.ok) {
+    return jsonResponse({ error: `Failed to load series: ${resp.status}` }, 500, corsHeaders);
+  }
+  const data = await resp.json();
+  const series = (data.data || []).map((s) => ({
+    id: s.id,
+    title: s.attributes.title,
+  }));
+  return jsonResponse({ series }, 200, corsHeaders);
 }
 
 async function handleStatusData(request, env, corsHeaders) {

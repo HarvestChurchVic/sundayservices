@@ -20,6 +20,9 @@ on:
       source_file:
         description: "R2 key of manually-uploaded video (e.g. raw-uploads/sermon.mp4). Leave blank to use yt-dlp instead."
         required: false
+      series_id:
+        description: "Planning Center Publishing series ID, or blank for no series."
+        required: false
 
 jobs:
   process:
@@ -85,13 +88,16 @@ jobs:
           PODCAST_CATEGORY: "Religion & Spirituality"
           PODCAST_EXPLICIT: "false"
           PODCAST_WEBSITE: ${{ secrets.PODCAST_WEBSITE }}
+          PCO_CLIENT_ID: ${{ secrets.PCO_CLIENT_ID }}
+          PCO_SECRET: ${{ secrets.PCO_SECRET }}
         run: |
           set +e
           python pipeline.py "${{ github.event.inputs.youtube_url }}" \
             --title "${{ github.event.inputs.title }}" \
             --speaker "${{ github.event.inputs.speaker }}" \
             --sermon-date "${{ github.event.inputs.sermon_date }}" \
-            --source-file "${{ github.event.inputs.source_file }}" 2>&1 | tee pipeline_debug.log
+            --source-file "${{ github.event.inputs.source_file }}" \
+            --series-id "${{ github.event.inputs.series_id }}" 2>&1 | tee pipeline_debug.log
           exit ${PIPESTATUS[0]}
         shell: bash
 

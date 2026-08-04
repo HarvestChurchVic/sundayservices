@@ -486,6 +486,13 @@ def build_and_upload_feed(episodes: list[dict]) -> str:
 
 def send_notification_email(context: dict) -> None:
     print("Sending notification email...")
+    pco_line = (
+        f"Planning Center episode: {context['pco_episode_url']}\n"
+        f"  (One thing left to do there: open it and select \"{context['speaker']}\" as the speaker — "
+        f"Planning Center doesn't allow this to be set automatically.)"
+        if context.get("pco_episode_url")
+        else "Planning Center episode: NOT created automatically (see below) — add this one manually."
+    )
     body = f"""New sermon processed and hosted.
 
 Title: {context['title']}
@@ -496,13 +503,14 @@ YouTube clip: {context['youtube_url'] if context['youtube_url'] else 'Not yet pu
 Hosted MP3: {context['mp3_url']}
 Podcast RSS feed: {context['feed_url']}
 Episode thumbnail: {context['image_url'] if context.get('image_url') else 'None found — using default podcast artwork. Upload images/<filename>.png to R2 alongside the video to set one.'}
+{pco_line}
 
 --- Blurb ---
 {context['blurb']}
 
 Remaining manual steps:
 - Update the YouTube video title, speaker and description with the blurb above
-- Create the Planning Center sermon entry (title, speaker, blurb, date, media link)
+- In Planning Center, select the correct speaker on the episode (see above)
 """
     msg = MIMEText(body)
     msg["Subject"] = f"Sermon processed: {context['title']}"
@@ -513,6 +521,137 @@ Remaining manual steps:
         server.starttls()
         server.login(env("SMTP_USERNAME"), env("SMTP_PASSWORD"))
         server.send_message(msg)
+
+
+# ---------------------------------------------------------------------------
+# Step: create the Planning Center Publishing episode
+# ---------------------------------------------------------------------------
+
+PCO_BASE = "https://api.planningcenteronline.com/publishing/v2"
+PCO_UPLOAD_URL = "https://upload.planningcenteronline.com/v2/files"
+PCO_CHANNEL_ID = "28229"  # Sunday Sermons
+
+SPEAKER_IDS = {
+    "Ps Andrew Cartledge": "180515070",
+    "Ps Rachel Cartledge": "180594564",
+    "Ps Keith Ainge": "185233127",
+    "Ps Caleb McLaughlin": "180595325",
+    "Ps Ruth Emmerson": "185233241",
+    "Ps Ron Spence": "185233554",
+    "Ps Greg McKinnon": "180592588",
+    "Guest Speaker": "190362143",
+}
+
+
+def pco_auth():
+    return (env("PCO_CLIENT_ID"), env("PCO_SECRET"))
+
+
+def upload_file_to_pco(file_url: str) -> str | None:
+    """Downloads a file from a public URL (e.g. the thumbnail sitting on R2)
+    and re-uploads it to Planning Center's Uploads API, returning the file
+    UUID needed to attach it as episode art. Returns None on any failure —
+    a missing thumbnail shouldn't block the whole episode from being
+    created."""
+    import requests
+
+    try:
+        img_resp = requests.get(file_url, timeout=30)
+        img_resp.raise_for_status()
+        upload_resp = requests.post(
+            PCO_UPLOAD_URL,
+            auth=pco_auth(),
+            files={"file": ("thumbnail.png", img_resp.content, "image/png")},
+            timeout=30,
+        )
+        upload_resp.raise_for_status()
+        return upload_resp.json()["data"][0]["id"]
+    except Exception as e:
+        print(f"Warning: failed to upload thumbnail to Planning Center ({e}). Continuing without it.")
+        return None
+
+
+def create_planning_center_episode(title: str, speaker: str, sermon_date: str,
+                                    blurb: str, video_url: str, audio_url: str,
+                                    image_url: str = None, series_id: str = None) -> dict:
+    """Creates the episode in Planning Center Publishing (Sunday Sermons
+    channel), matching every field verified in testing: title, description,
+    series, video/audio links, correct prerecorded availability at 12pm on
+    the sermon date, and a matching live-time entry at 10:30am (rather than
+    the channel's default livestream time).
+
+    Speaker assignment is NOT done here — Planning Center's API does not
+    support creating that link (confirmed: no POST endpoint exists for it),
+    so it stays a one-click manual step, called out in the notification
+    email instead.
+
+    Returns {"episode_url": ..., "speaker_name": ...} on success. Raises on
+    failure — the caller decides whether that should be fatal to the whole
+    run (it shouldn't be, since the podcast side already succeeded by this
+    point)."""
+    import requests
+
+    print("Creating Planning Center Publishing episode...")
+
+    art_uuid = upload_file_to_pco(image_url) if image_url else None
+
+    published_at = f"{sermon_date}T12:00:00+10:00"
+    live_at = f"{sermon_date}T10:30:00+10:00"
+
+    attributes = {
+        "title": title,
+        "description": blurb,
+        "video_url": video_url,
+        "library_video_url": video_url,
+        "library_audio_url": audio_url,
+        "published_to_library_at": published_at,
+        "stream_type": "prerecorded",
+    }
+    if series_id:
+        attributes["series_id"] = series_id
+    if art_uuid:
+        attributes["art"] = art_uuid
+
+    payload = {
+        "data": {
+            "type": "Episode",
+            "attributes": attributes,
+            "relationships": {
+                "channel": {"data": {"type": "Channel", "id": PCO_CHANNEL_ID}}
+            },
+        }
+    }
+
+    resp = requests.post(
+        f"{PCO_BASE}/episodes",
+        auth=pco_auth(),
+        headers={"Content-Type": "application/json"},
+        json=payload,
+        timeout=30,
+    )
+    resp.raise_for_status()
+    episode = resp.json()["data"]
+    episode_id = episode["id"]
+
+    # New episodes get an auto-assigned live time pointing at the channel's
+    # generic livestream — replace it with one for the actual sermon date
+    existing_times = requests.get(f"{PCO_BASE}/episodes/{episode_id}/episode_times", auth=pco_auth(), timeout=30)
+    if existing_times.ok:
+        for item in existing_times.json().get("data", []):
+            requests.delete(f"{PCO_BASE}/episodes/{episode_id}/episode_times/{item['id']}", auth=pco_auth(), timeout=30)
+
+    requests.post(
+        f"{PCO_BASE}/episodes/{episode_id}/episode_times",
+        auth=pco_auth(),
+        headers={"Content-Type": "application/json"},
+        json={"data": {"type": "EpisodeTime", "attributes": {"starts_at": live_at, "video_url": video_url}}},
+        timeout=30,
+    )
+
+    return {
+        "episode_url": episode["attributes"]["church_center_url"],
+        "speaker_name": speaker,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -533,6 +672,8 @@ def main():
                          help="R2 object key of a manually-uploaded raw video "
                               "(e.g. raw-uploads/sermon.mp4). If given, this is "
                               "used instead of downloading via yt-dlp.")
+    parser.add_argument("--series-id", default=None,
+                         help="Planning Center Publishing series ID, or blank for no series.")
     args = parser.parse_args()
 
     slug = f"{args.sermon_date}-{slugify(args.title)}"
@@ -568,6 +709,24 @@ def main():
     save_episode_log(episodes)
     feed_url = build_and_upload_feed(episodes)
 
+    pco_result = None
+    try:
+        pco_result = create_planning_center_episode(
+            title=args.title,
+            speaker=args.speaker,
+            sermon_date=args.sermon_date,
+            blurb=blurb_parts["blurb"],
+            video_url=args.youtube_url,
+            audio_url=mp3_url,
+            image_url=image_url,
+            series_id=args.series_id,
+        )
+        print(f"Planning Center episode created: {pco_result['episode_url']}")
+    except Exception as e:
+        print(f"Warning: Planning Center episode creation failed ({e}). "
+              f"The podcast episode is still live — this just needs to be added "
+              f"to Planning Center manually.")
+
     send_notification_email({
         "title": args.title,
         "speaker": args.speaker,
@@ -577,6 +736,7 @@ def main():
         "feed_url": feed_url,
         "blurb": blurb_parts["full"],  # with hashtags — this is what goes on YouTube
         "image_url": image_url,
+        "pco_episode_url": pco_result["episode_url"] if pco_result else None,
     })
 
     print("\nDone.")
