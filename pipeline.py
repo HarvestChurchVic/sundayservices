@@ -454,6 +454,7 @@ def build_and_upload_feed(episodes: list[dict]) -> str:
     fg.load_extension("podcast")
     fg.title(env("PODCAST_TITLE"))
     fg.author({"name": env("PODCAST_AUTHOR")})
+    fg.podcast.itunes_author(env("PODCAST_AUTHOR"))
     fg.description(env("PODCAST_DESCRIPTION"))
     fg.link(href=env("PODCAST_WEBSITE"), rel="alternate")
     fg.language(env("PODCAST_LANGUAGE", default="en-au"))
