@@ -603,9 +603,10 @@ def create_planning_center_episode(title: str, speaker: str, sermon_date: str,
                                     image_url: str = None, series_id: str = None) -> dict:
     """Creates the episode in Planning Center Publishing (Sunday Sermons
     channel), matching every field verified in testing: title, description,
-    series, video/audio links, correct prerecorded availability at 12pm on
-    the sermon date, and a matching live-time entry at 10:30am (rather than
-    the channel's default livestream time).
+    series, video/audio links, and correct prerecorded availability at 12pm
+    on the sermon date. The channel's auto-assigned default live time is
+    deleted (not replaced — replacing it was found to silently reset
+    stream_type and never actually carried the real video anyway).
 
     Speaker assignment is NOT done here — Planning Center's API does not
     support creating that link (confirmed: no POST endpoint exists for it),
@@ -623,7 +624,6 @@ def create_planning_center_episode(title: str, speaker: str, sermon_date: str,
     art_uuid = upload_file_to_pco(image_url) if image_url else None
 
     published_at = f"{sermon_date}T12:00:00+10:00"
-    live_at = f"{sermon_date}T10:30:00+10:00"
 
     attributes = {
         "title": title,
@@ -661,17 +661,24 @@ def create_planning_center_episode(title: str, speaker: str, sermon_date: str,
     episode_id = episode["id"]
 
     # New episodes get an auto-assigned live time pointing at the channel's
-    # generic livestream — replace it with one for the actual sermon date
+    # generic livestream. Testing confirmed creating a replacement here does
+    # two bad things: it silently resets stream_type back to
+    # "channel_default_livestream" as a side effect, and it never actually
+    # carries our specific video_url anyway (it always inherits the
+    # channel's generic livestream embed regardless of what's submitted).
+    # So: delete the auto-assigned one and stop there — don't create a
+    # replacement — then re-assert stream_type defensively, since that's
+    # the only thing that reliably keeps it correct.
     existing_times = requests.get(f"{PCO_BASE}/episodes/{episode_id}/episode_times", auth=pco_auth(), timeout=30)
     if existing_times.ok:
         for item in existing_times.json().get("data", []):
             requests.delete(f"{PCO_BASE}/episodes/{episode_id}/episode_times/{item['id']}", auth=pco_auth(), timeout=30)
 
-    requests.post(
-        f"{PCO_BASE}/episodes/{episode_id}/episode_times",
+    requests.patch(
+        f"{PCO_BASE}/episodes/{episode_id}",
         auth=pco_auth(),
         headers={"Content-Type": "application/json"},
-        json={"data": {"type": "EpisodeTime", "attributes": {"starts_at": live_at, "video_url": video_url}}},
+        json={"data": {"type": "Episode", "id": episode_id, "attributes": {"stream_type": "prerecorded"}}},
         timeout=30,
     )
 
