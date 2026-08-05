@@ -77,6 +77,20 @@ def main():
         ep = real_ep["data"][0]
         out(f"id={ep['id']}  title={ep['attributes'].get('title')}")
 
+    out("\n--- Diagnosing The Foundation's actual PCO state ---")
+    all_eps = get("/channels/28229/episodes?per_page=100&order=-created_at")
+    for ep in all_eps.get("data", []):
+        if ep["attributes"]["title"].strip().lower() == "the foundation":
+            eid = ep["id"]
+            out(f"Found episode id={eid}")
+            out(json.dumps(ep["attributes"], indent=2))
+            times = get(f"/episodes/{eid}/episode_times")
+            out(f"\nEpisode times ({len(times.get('data', []))}):")
+            out(json.dumps(times, indent=2)[:2000])
+            break
+    else:
+        out("Could not find an episode titled 'The Foundation'")
+
     out("\n--- Checking what operations are supported on Speaker records ---")
     spec_resp = requests.get(f"{BASE}/open_api/2024-03-25", auth=(CLIENT_ID, SECRET))
     if spec_resp.ok:
