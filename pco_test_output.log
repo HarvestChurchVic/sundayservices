@@ -138,6 +138,26 @@ Checking episode id=686953 ('But God')
   }
 }
 
+--- Checking auto-assigned speaker on a LEAD episode (real speaker: Dustan Bell, not Andrew) ---
+{
+  "links": {
+    "self": "https://api.planningcenteronline.com/publishing/v2/episodes/720086/speakerships"
+  },
+  "data": [],
+  "included": [],
+  "meta": {
+    "total_count": 0,
+    "count": 0,
+    "can_include": [
+      "speaker"
+    ],
+    "parent": {
+      "id": "720086",
+      "type": "Episode"
+    }
+  }
+}
+
 --- Checking speakerships on The Foundation (720662) — created purely via our automation, no speaker ever set ---
 {
   "links": {
