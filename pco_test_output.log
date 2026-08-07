@@ -1,17 +1,250 @@
---- Current state before change ---
-stream_type: channel_default_livestream
+Testing connection to Planning Center Publishing API...
 
---- Deleting existing episode_time(s), NOT recreating ---
-Deleted 455895 -> 204
+Found 8 speaker(s):
+  id=180515070  name=Andrew Cartledge
+  id=180595325  name=Caleb McLaughlin
+  id=180592588  name=Greg McKinnon
+  id=190362143  name=Guest Speaker
+  id=185233127  name=Keith Ainge
+  id=180594564  name=Rachel Cartledge
+  id=185233554  name=Ron Spence
+  id=185233241  name=Ruth Emmerson
 
---- Checking stream_type immediately after deletion (before re-asserting) ---
-stream_type: channel_default_livestream
+Found 2 channel(s):
+  id=28229  name=Sunday Sermons
+  id=29874  name=COURSES
 
---- Re-asserting stream_type=prerecorded ---
-PATCH -> 200
+Most recent series (up to 10):
+  id=91281  title=Ephesians
+  id=94143  title=The Guaranteed Christian Life
+  id=95059  title=DISCIPLE
+  id=95060  title=DISCIPLE 2.0
+  id=95156  title=LEAD
 
---- Final state ---
-stream_type: prerecorded
-video_url: https://youtu.be/aw5sYIL66HE
+Connection test successful — nothing was created or modified.
 
-Remaining episode_times: 0
+--- Checking series-to-channel relationship ---
+{
+  "links": {
+    "self": "https://api.planningcenteronline.com/publishing/v2/series?include=channel&per_page=3",
+    "next": "https://api.planningcenteronline.com/publishing/v2/series?include=channel&offset=3&per_page=3"
+  },
+  "data": [
+    {
+      "type": "Series",
+      "id": "91281",
+      "attributes": {
+        "art": {
+          "type": "File",
+          "id": 30638289,
+          "attributes": {
+            "name": "Ephesians Series.png",
+            "signed_identifier": "eyJfcmFpbHMiOnsiZGF0YSI6MjEwNDgzNiwicHVyIjoiYmxvYl9pZCJ9fQ==--4f448d0e313406d0d3b62af3823e1c10890684a2",
+            "variants": {
+              "original": "https://images.planningcenterusercontent.com/v1/transform.png?bucket=publishing-production-attachments&disposition=inline&expires_at=1788188399&key=organization_513554_vv7ntjfrhogztj0eq20etetryo2v&thumb=2000x1400%3E&signature=dfbeb0c1a8436f6993d2108ed385ec5206e873d5fd96d477f46ad91a1fe57798",
+              "original_ratio_small": "https://images.planningcenterusercontent.com/v1/transform.png?bucket=publishing-production-attachments&disposition=inline&expires_at=1788188399&key=organization_513554_vv7ntjfrhogztj0eq20etetryo2v&thumb=640x360%3E&signature=80641f172230f4e9d33949082f813c0562fa9fc74f1b1195a4ea05b150036b56",
+              "small": "https://images.planningcenterusercontent.com/v1/transform.png?bucket=publishing-production-attachments&disposition=inline&expires_at=1788188399&key=organization_513554_vv7ntjfrhogztj0eq20etetryo2v&thumb=640x360%23&signature=27db2c9af2a1d5a277f68b57b9556daf9bc995ba0b09445e324e014b63b45e4c",
+              "medium": "https://images.planningcenterusercontent.com/v1/transform.png?bucket=publishing-production-attachments&disposition=inline&expires_at=1788188399&key=organization_513554_vv7ntjfrhogztj0eq20etetryo2v&thumb=960x540%23&signature=613b50e918facfdca121a41610699dd88d44e6d12aa50882a94816590a9fee78",
+              "large": "https://images.planningcenterusercontent.com/v1/transform.png?bucket=publishing-production-attachments&disposition=inline&expires_at=1788188399&key=organization_513554_vv7ntjfrhogztj0eq20etetryo2v&thumb=2000x1125%23&signature=e26ee7ab46f533c3c8a13722c4443e62118020fec9ee14dfb7ec592fa3f6f2a7"
+            }
+          }
+        },
+        "church_center_url": "https://harvestchurchvic.churchcenter.com/channels/28229/series/91281",
+        "created_at": "2026-06-12T04:45:15Z",
+        "description": "What if everything you have been looking for \u2014 security, identity, purpo
+
+--- Checking series query params in OpenAPI spec ---
+
+/channels/{channel_id}/series: ['get', 'post', 'summary']
+  param: channel_id
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+
+/series: ['get', 'post', 'summary']
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+  param: None
+
+--- Fetching a real Sunday Sermons episode for edit-link testing ---
+id=686953  title=But God
+
+--- Checking for auto-assigned Speakership on a real episode ---
+Checking episode id=686953 ('But God')
+{
+  "links": {
+    "self": "https://api.planningcenteronline.com/publishing/v2/episodes/686953/speakerships"
+  },
+  "data": [
+    {
+      "type": "Speakership",
+      "id": "153914",
+      "attributes": {},
+      "relationships": {
+        "speaker": {
+          "data": {
+            "type": "Speaker",
+            "id": "180515070"
+          }
+        }
+      },
+      "links": {
+        "self": "https://api.planningcenteronline.com/publishing/v2/episodes/686953/speakerships/153914"
+      }
+    }
+  ],
+  "included": [],
+  "meta": {
+    "total_count": 1,
+    "count": 1,
+    "can_include": [
+      "speaker"
+    ],
+    "parent": {
+      "id": "686953",
+      "type": "Episode"
+    }
+  }
+}
+
+--- Diagnosing The Foundation's actual PCO state ---
+Found episode id=720662
+{
+  "art": {
+    "type": "File",
+    "id": 31857312,
+    "attributes": {
+      "name": "thumbnail.png",
+      "signed_identifier": "eyJfcmFpbHMiOnsiZGF0YSI6MjE3NDM0NCwicHVyIjoiYmxvYl9pZCJ9fQ==--d39aa07eb13a91f3b7b12317cbaea8f151348462",
+      "source": "hosted",
+      "variants": {
+        "original": "https://images.planningcenterusercontent.com/v1/transform.png?bucket=publishing-production-attachments&disposition=inline&expires_at=1788188399&key=organization_513554__cbe90ba6dadba57a4617112cf967dd26&thumb=2000x1400%3E&signature=c77b6950e91c8fcc9db1494401a707b4eede75c395cf23c8d7d38daeaaae750d",
+        "original_ratio_small": "https://images.planningcenterusercontent.com/v1/transform.png?bucket=publishing-production-attachments&disposition=inline&expires_at=1788188399&key=organization_513554__cbe90ba6dadba57a4617112cf967dd26&thumb=640x360%3E&signature=ebfc153d5236df8a122962b853e35fab9c3fca2b11310361082d551c3f2f51b2",
+        "small": "https://images.planningcenterusercontent.com/v1/transform.png?bucket=publishing-production-attachments&disposition=inline&expires_at=1788188399&key=organization_513554__cbe90ba6dadba57a4617112cf967dd26&thumb=640x360%23&signature=4a07caca6fa8da9adbc01f54e0f30ab68db74e9c62862bfe6a05f1b126248ccc",
+        "medium": "https://images.planningcenterusercontent.com/v1/transform.png?bucket=publishing-production-attachments&disposition=inline&expires_at=1788188399&key=organization_513554__cbe90ba6dadba57a4617112cf967dd26&thumb=960x540%23&signature=2359587b125312d403f747f2f82c420a62aa5db8080532f039142badd0c7e47d",
+        "large": "https://images.planningcenterusercontent.com/v1/transform.png?bucket=publishing-production-attachments&disposition=inline&expires_at=1788188399&key=organization_513554__cbe90ba6dadba57a4617112cf967dd26&thumb=2000x1125%23&signature=4614dbbd37b4334b10d9a91798781822a417f4cc0d104d6b99e91a71a7937a79"
+      }
+    }
+  },
+  "church_center_url": "https://harvestchurchvic.churchcenter.com/episodes/720662",
+  "created_at": "2026-08-04T23:49:54Z",
+  "description": "A builder stands at the edge of a freshly poured slab, knowing that nothing else can go up until this sets. Nobody admires it. Nobody photographs it. But without it, everything above ground eventually falls.\n\nThis sermon sits with one of the most overlooked questions in the Christian life: not what you are building, but what you are building on. Ps Andrew Cartledge works through a claim in 2 Peter that would have sounded scandalous to its original audience, and the implications of that claim reach further than most people expect. There is something here about identity, about the difference between knowing you belong to a family and actually living like you do, and about why the parts of faith that feel the most uncomfortable might be doing the most important work.\n\nWatch this one and let it settle.\n\nBuild.",
+  "library_audio_url": "https://hrvstpdcst.com/audio/2026-08-02-the-foundation.mp3",
+  "library_streaming_service": "youtube",
+  "library_video_embed_code": "<iframe src='https://www.youtube.com/embed/aw5sYIL66HE?rel=0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share;' allowfullscreen frameborder='0' style='border:none; overflow:hidden; width:100%; height:100%'></iframe>",
+  "library_video_thumbnail_url": "https://img.youtube.com/vi/aw5sYIL66HE/maxresdefault.jpg",
+  "library_video_url": "https://youtu.be/aw5sYIL66HE",
+  "needs_library_audio_or_video_url": false,
+  "needs_notes_template": false,
+  "needs_video_url": false,
+  "page_actions": [
+    {
+      "label": "View on Church Center",
+      "verb": "get",
+      "url": "https://harvestchurchvic.churchcenter.com/episodes/720662",
+      "options": {
+        "target": "_blank",
+        "rel": "noopener noreferrer"
+      }
+    },
+    {
+      "label": "Remove from Series",
+      "verb": "patch",
+      "url": "https://api.planningcenteronline.com/publishing/v2/episodes/720662",
+      "payload": {
+        "data": {
+          "attributes": {
+            "series_id": null
+          }
+        }
+      }
+    },
+    {
+      "label": "Edit",
+      "verb": "get",
+      "url": "/sermons/episodes/720662/edit"
+    }
+  ],
+  "published_live_at": null,
+  "published_to_library_at": "2026-08-02T02:00:00Z",
+  "sermon_audio": {
+    "type": "File",
+    "id": 720662,
+    "attributes": {
+      "name": "https://hrvstpdcst.com/audio/2026-08-02-the-foundation.mp3",
+      "signed_identifier": "",
+      "source": "remote"
+    }
+  },
+  "services_plan_remote_identifier": null,
+  "services_service_type_remote_identifier": null,
+  "stream_type": "prerecorded",
+  "streaming_service": "youtube",
+  "title": "The Foundation",
+  "updated_at": "2026-08-05T04:11:01Z",
+  "video_embed_code": "<iframe src='https://www.youtube.com/embed/aw5sYIL66HE?rel=0' allow='accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share;' allowfullscreen frameborder='0' style='border:none; overflow:hidden; width:100%; height:100%'></iframe>",
+  "video_thumbnail_url": "https://img.youtube.com/vi/aw5sYIL66HE/maxresdefault.jpg",
+  "video_url": "https://youtu.be/aw5sYIL66HE"
+}
+
+Episode times (0):
+{
+  "links": {
+    "self": "https://api.planningcenteronline.com/publishing/v2/episodes/720662/episode_times"
+  },
+  "data": [],
+  "included": [],
+  "meta": {
+    "total_count": 0,
+    "count": 0,
+    "can_order_by": [
+      "starts_at"
+    ],
+    "parent": {
+      "id": "720662",
+      "type": "Episode"
+    }
+  }
+}
+
+--- Checking what operations are supported on Speaker records ---
+/episodes/{episode_id}/episode_times: ['description', 'get', 'post', 'summary']
+    POST schema: {}
+/episodes/{episode_id}/episode_times/{episode_time_id}: ['delete', 'description', 'get', 'patch', 'summary']
+/episodes/{episode_id}/speakerships: ['get', 'summary']
+/episodes/{episode_id}/speakerships/{speakership_id}: ['delete', 'get', 'patch', 'summary']
+/episodes/{episode_id}/speakerships/{speakership_id}/speaker: ['get', 'summary']
+/episodes/{episode_id}/speakerships/{speakership_id}/speaker/{speaker_id}: ['get', 'summary']
+/speakers: ['get', 'summary']
+/speakers/{speaker_id}: ['get', 'summary']
