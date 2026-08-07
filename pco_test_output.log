@@ -21,6 +21,15 @@
 
 --- Switching to Keith Ainge (proving the PATCH genuinely works) ---
 PATCH -> 422
+Response body: {
+  "errors": [
+    {
+      "status": "422",
+      "title": "Forbidden Attribute",
+      "detail": "speaker_id cannot be assigned"
+    }
+  ]
+}
 {
   "data": {
     "type": "Speakership",
