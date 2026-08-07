@@ -55,6 +55,7 @@ def main():
     out("\n--- Switching to Keith Ainge (proving the PATCH genuinely works) ---")
     r1 = set_speaker(KEITH_AINGE_ID)
     out(f"PATCH -> {r1.status_code}")
+    out(f"Response body: {json.dumps(r1.json(), indent=2)}")
     out(json.dumps(get_current_speaker(), indent=2)[:500])
 
     out("\n--- Setting back to the correct speaker: Andrew Cartledge ---")
