@@ -86,6 +86,10 @@ def main():
         speakerships = get(f"/episodes/{eid}/speakerships")
         out(json.dumps(speakerships, indent=2))
 
+    out("\n--- Checking speakerships on The Foundation (720662) — created purely via our automation, no speaker ever set ---")
+    speakerships2 = get("/episodes/720662/speakerships")
+    out(json.dumps(speakerships2, indent=2))
+
     out("\n--- Diagnosing The Foundation's actual PCO state ---")
     all_eps = get("/channels/28229/episodes?per_page=100&order=-created_at")
     for ep in all_eps.get("data", []):
