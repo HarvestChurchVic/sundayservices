@@ -77,6 +77,15 @@ def main():
         ep = real_ep["data"][0]
         out(f"id={ep['id']}  title={ep['attributes'].get('title')}")
 
+    out("\n--- Checking for auto-assigned Speakership on a real episode ---")
+    ep_resp = get("/channels/28229/episodes?per_page=1&order=-created_at")
+    if ep_resp.get("data"):
+        eid = ep_resp["data"][0]["id"]
+        title = ep_resp["data"][0]["attributes"]["title"]
+        out(f"Checking episode id={eid} ('{title}')")
+        speakerships = get(f"/episodes/{eid}/speakerships")
+        out(json.dumps(speakerships, indent=2))
+
     out("\n--- Diagnosing The Foundation's actual PCO state ---")
     all_eps = get("/channels/28229/episodes?per_page=100&order=-created_at")
     for ep in all_eps.get("data", []):
