@@ -29,7 +29,7 @@ def set_speaker(speaker_id):
     return requests.patch(
         f"{BASE}/episodes/{EPISODE_ID}/speakerships/{SPEAKERSHIP_ID}",
         auth=auth(),
-        json={"data": {"type": "Speakership", "id": SPEAKERSHIP_ID,
+        json={"data": {"type": "Speakership", "id": SPEAKERSHIP_ID, "attributes": {},
                         "relationships": {"speaker": {"data": {"type": "Speaker", "id": speaker_id}}}}},
         timeout=30,
     )
