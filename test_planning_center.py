@@ -86,6 +86,10 @@ def main():
         speakerships = get(f"/episodes/{eid}/speakerships")
         out(json.dumps(speakerships, indent=2))
 
+    out("\n--- Checking auto-assigned speaker on a LEAD episode (real speaker: Dustan Bell, not Andrew) ---")
+    lead_speakerships = get("/episodes/720086/speakerships")
+    out(json.dumps(lead_speakerships, indent=2))
+
     out("\n--- Checking speakerships on The Foundation (720662) — created purely via our automation, no speaker ever set ---")
     speakerships2 = get("/episodes/720662/speakerships")
     out(json.dumps(speakerships2, indent=2))
