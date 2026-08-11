@@ -23,6 +23,8 @@ def list_playlist_videos():
         "yt-dlp", "--print",
         "%(title)s\t%(upload_date)s\t%(webpage_url)s",
         "--ignore-errors",
+        "--ignore-no-formats-error",
+        "--skip-download",
     ]
     if Path("youtube_cookies.txt").exists():
         cmd += ["--cookies", "youtube_cookies.txt"]
