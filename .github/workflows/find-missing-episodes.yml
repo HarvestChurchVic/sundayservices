@@ -21,6 +21,19 @@ jobs:
       - name: Install yt-dlp
         run: pip install -U yt-dlp
 
+      - name: Install Deno (JS runtime required by yt-dlp)
+        run: |
+          curl -fsSL https://deno.land/install.sh | sh
+          echo "$HOME/.deno/bin" >> "$GITHUB_PATH"
+
+      - name: Restore YouTube cookies
+        env:
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
+        run: |
+          if [ -n "$YOUTUBE_COOKIES" ]; then
+            echo "$YOUTUBE_COOKIES" > youtube_cookies.txt
+          fi
+
       - name: Scan playlist for gaps
         run: python find_missing_episodes.py
 
