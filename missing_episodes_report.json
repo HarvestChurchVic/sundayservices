@@ -1,0 +1,49 @@
+{
+  "playlist_url": "https://youtube.com/playlist?list=PLDTC9ySR7K9U",
+  "total_in_playlist": 4,
+  "already_in_feed": 0,
+  "missing_candidates": [
+    {
+      "title": "The Guaranteed Christian Life / Goodness / Greg McKinnon",
+      "upload_date": "NA",
+      "url": "https://www.youtube.com/watch?v=qrLoum8a1Ik"
+    },
+    {
+      "title": "The Guaranteed Christian Life / The Foundation / Ps Andrew Cartledge",
+      "upload_date": "NA",
+      "url": "https://www.youtube.com/watch?v=aw5sYIL66HE"
+    },
+    {
+      "title": "The Guaranteed Christian Life / The Guarantee / Ps Andrew Cartledge",
+      "upload_date": "NA",
+      "url": "https://www.youtube.com/watch?v=8DTfenxYT5E"
+    },
+    {
+      "title": "The Guanteed Christian Life / What God has Given Us / Ps Keith Ainge",
+      "upload_date": "NA",
+      "url": "https://www.youtube.com/watch?v=7TUrpzH5VTU"
+    }
+  ],
+  "all_videos": [
+    {
+      "title": "The Guaranteed Christian Life / Goodness / Greg McKinnon",
+      "upload_date": "NA",
+      "url": "https://www.youtube.com/watch?v=qrLoum8a1Ik"
+    },
+    {
+      "title": "The Guaranteed Christian Life / The Foundation / Ps Andrew Cartledge",
+      "upload_date": "NA",
+      "url": "https://www.youtube.com/watch?v=aw5sYIL66HE"
+    },
+    {
+      "title": "The Guaranteed Christian Life / The Guarantee / Ps Andrew Cartledge",
+      "upload_date": "NA",
+      "url": "https://www.youtube.com/watch?v=8DTfenxYT5E"
+    },
+    {
+      "title": "The Guanteed Christian Life / What God has Given Us / Ps Keith Ainge",
+      "upload_date": "NA",
+      "url": "https://www.youtube.com/watch?v=7TUrpzH5VTU"
+    }
+  ]
+}
