@@ -31,6 +31,14 @@ def list_playlist_videos():
     print("--- yt-dlp stderr (for debugging) ---")
     print(result.stderr[-3000:])
 
+    with open("ytdlp_debug.log", "w") as f:
+        f.write("=== RETURN CODE ===\n")
+        f.write(str(result.returncode) + "\n\n")
+        f.write("=== STDOUT ===\n")
+        f.write(result.stdout + "\n\n")
+        f.write("=== STDERR ===\n")
+        f.write(result.stderr)
+
     videos = []
     for line in result.stdout.strip().split("\n"):
         if not line.strip():
