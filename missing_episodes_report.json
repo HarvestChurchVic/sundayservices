@@ -1,7 +1,29 @@
 {
   "playlist_url": "https://youtube.com/playlist?list=PLEB-nuL6Dq5Bb6ED8M0Io3P3kAiF4i5pX",
-  "total_in_playlist": 0,
+  "total_in_playlist": 2,
   "already_in_feed": 0,
-  "missing_candidates": [],
-  "all_videos": []
+  "missing_candidates": [
+    {
+      "title": "Ps Greg McKinnon - What's Love Got To Do With It",
+      "upload_date": "20211113",
+      "url": "https://www.youtube.com/watch?v=2vW9BcqO5Wo"
+    },
+    {
+      "title": "Ps Matt Heins - The Helper",
+      "upload_date": "20230820",
+      "url": "https://www.youtube.com/watch?v=NVLHraYx0VU"
+    }
+  ],
+  "all_videos": [
+    {
+      "title": "Ps Greg McKinnon - What's Love Got To Do With It",
+      "upload_date": "20211113",
+      "url": "https://www.youtube.com/watch?v=2vW9BcqO5Wo"
+    },
+    {
+      "title": "Ps Matt Heins - The Helper",
+      "upload_date": "20230820",
+      "url": "https://www.youtube.com/watch?v=NVLHraYx0VU"
+    }
+  ]
 }
