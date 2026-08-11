@@ -12,19 +12,21 @@ import json
 import subprocess
 from pathlib import Path
 
-PLAYLIST_URL = "https://youtube.com/playlist?list=PLDTC9ySR7K9U"
+PLAYLIST_URL = "https://youtube.com/playlist?list=PLEB-nuL6Dq5Bb6ED8M0Io3P3kAiF4i5pX"
 
 
 def list_playlist_videos():
-    """Uses yt-dlp to list every video in the playlist without downloading
-    anything, returning a list of {title, upload_date, url} dicts."""
+    """Uses yt-dlp to list every video in the playlist. Does NOT use
+    --flat-playlist since that skips upload dates entirely — this is slower
+    (fetches real metadata per video) but the dates actually come back."""
     result = subprocess.run(
         [
-            "yt-dlp", "--flat-playlist", "--print",
+            "yt-dlp", "--print",
             "%(title)s\t%(upload_date)s\t%(webpage_url)s",
+            "--ignore-errors",
             PLAYLIST_URL,
         ],
-        capture_output=True, text=True, timeout=600,
+        capture_output=True, text=True, timeout=1800,
     )
     print("--- yt-dlp stderr (for debugging) ---")
     print(result.stderr[-3000:])
