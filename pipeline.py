@@ -705,6 +705,7 @@ def extract_youtube_video_id(url: str) -> str | None:
         r"[?&]v=([A-Za-z0-9_-]{11})",
         r"youtube\.com/shorts/([A-Za-z0-9_-]{11})",
         r"youtube\.com/embed/([A-Za-z0-9_-]{11})",
+        r"youtube\.com/live/([A-Za-z0-9_-]{11})",
     ]
     for pattern in patterns:
         m = re.search(pattern, url)
