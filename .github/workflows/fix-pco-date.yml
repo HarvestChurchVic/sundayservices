@@ -1,0 +1,33 @@
+name: Fix PCO Date
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install requests
+      - name: Fix
+        env:
+          PCO_CLIENT_ID: ${{ secrets.PCO_CLIENT_ID }}
+          PCO_SECRET: ${{ secrets.PCO_SECRET }}
+        run: python fix_pco_date.py > fix_pco_date_output.log 2>&1
+      - name: Commit output
+        if: always()
+        run: |
+          git config user.name "sermon-pipeline-bot"
+          git config user.email "actions@github.com"
+          git add fix_pco_date_output.log
+          git diff --staged --quiet && exit 0
+          git commit -m "Fix PCO date output"
+          git push
