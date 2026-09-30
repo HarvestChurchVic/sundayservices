@@ -12,8 +12,11 @@ by hand) and does everything from there automatically:
      into Claude chat)
   5. Upload MP4 + MP3 to Cloudflare R2
   6. Add a new <item> to the podcast RSS feed and re-upload it
-  7. Email you the blurb, YouTube link, and file locations, so you can
-     finish the manual steps (YouTube details, Planning Center entry)
+  7. Create the Planning Center Publishing episode
+  8. Queue the episode in pending_social.json. social_publisher.py (run
+     every 30 minutes by the "Publish Social" workflow) then waits for it
+     to appear on Spotify, posts to Facebook and Instagram, and emails you
+     the blurb and every link
 
 Usage:
     python pipeline.py "https://youtu.be/XXXXXXXXX" \
@@ -490,7 +493,21 @@ def send_notification_email(context: dict) -> None:
     print("Sending notification email...")
 
     youtube_edit_line = context.get("youtube_edit_url") or context.get("youtube_url") or "(not yet published)"
-    pco_edit_line = context.get("pco_edit_url") or context.get("pco_episode_url") or "(Planning Center episode was NOT created automatically — add this one manually)"
+    pco_edit_line = context.get("pco_edit_url") or "(Planning Center episode was NOT created automatically, so add this one manually)"
+    pco_public_line = context.get("pco_episode_url") or "(not available yet)"
+
+    spotify_line = context.get("spotify_url") or "(not available yet)"
+    if context.get("spotify_fallback"):
+        spotify_line = ("(The episode hadn't appeared on Spotify after 24 hours, so the social "
+                        "posts went out without a Spotify link.)")
+
+    social_lines = []
+    if "facebook_result" in context:
+        social_lines.append(f"Facebook Page post: {context['facebook_result']}")
+    if "instagram_result" in context:
+        social_lines.append(f"Instagram post: {context['instagram_result']}")
+    social_block = "\n".join(social_lines) + "\n\n" if social_lines else ""
+    facebook_line = context.get("facebook_result") or "(the Facebook post wasn't created, so share the sermon into the Group by hand)"
 
     body = f"""CONGRATULATIONS!!!
 
@@ -500,6 +517,10 @@ Title: {context['title']}
 Speaker: {context['speaker']}
 Sermon date: {context['sermon_date']}
 
+Church Center (Planning Center) episode: {pco_public_line}
+
+Spotify episode: {spotify_line}
+
 YouTube clip: {context['youtube_url']}
 
 Hosted MP3: {context['mp3_url']}
@@ -508,7 +529,7 @@ Podcast RSS feed: {context['feed_url']}
 
 Episode thumbnail: {context['image_url'] if context.get('image_url') else '(none found — using default podcast artwork)'}
 
-BUT THERE IS STILL WORK TO DO!
+{social_block}BUT THERE IS STILL WORK TO DO!
 
 1. First grab this blurb and copy it
 
@@ -529,6 +550,12 @@ PLANNING CENTER EPISODE EDIT URL
 {pco_edit_line}
 
 (And just in case you forgot) - {context['speaker']}
+
+4. Then go to the Facebook post below, hit Share and share it into the Harvest Church Group (Facebook doesn't let us automate this one)
+
+
+FACEBOOK POST URL
+{facebook_line}
 
 
 WELL DONE!!
@@ -683,11 +710,51 @@ def create_planning_center_episode(title: str, speaker: str, sermon_date: str,
         timeout=30,
     )
 
+    # The public Church Center link. It isn't always filled in on the
+    # create response, so ask Planning Center for it again if it's missing.
+    # (If it's still missing, social_publisher.py tries again later.)
+    public_url = episode["attributes"].get("church_center_url")
+    if not public_url:
+        public_url = get_pco_public_url(episode_id)
+
     return {
-        "episode_url": episode["attributes"]["church_center_url"],
+        "episode_id": episode_id,
+        "episode_url": public_url,
         "edit_url": f"https://publishing.planningcenteronline.com/sermons/episodes/{episode_id}/edit",
         "speaker_name": speaker,
     }
+
+
+def get_pco_public_url(episode_id: str) -> str | None:
+    """Fetches the public Church Center URL for a Planning Center episode.
+    Returns None if Planning Center hasn't assigned one (or the call fails)."""
+    import requests
+
+    try:
+        resp = requests.get(f"{PCO_BASE}/episodes/{episode_id}", auth=pco_auth(), timeout=30)
+        resp.raise_for_status()
+        return resp.json()["data"]["attributes"].get("church_center_url")
+    except Exception as e:
+        print(f"Warning: couldn't fetch the Church Center URL for episode {episode_id} ({e}).")
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Step: queue the episode for the Spotify check, social posts and email
+# ---------------------------------------------------------------------------
+
+PENDING_SOCIAL_FILE = WORKDIR / "pending_social.json"
+
+
+def queue_for_social(context: dict) -> None:
+    pending = json.loads(PENDING_SOCIAL_FILE.read_text()) if PENDING_SOCIAL_FILE.exists() else []
+    context = dict(context)
+    context["queued_at"] = datetime.now(timezone.utc).isoformat()
+    context["done"] = {"facebook": False, "instagram": False, "email": False}
+    context["failures"] = 0
+    pending.append(context)
+    PENDING_SOCIAL_FILE.write_text(json.dumps(pending, indent=2))
+    print("Queued for Spotify check, social posts and completion email (pending_social.json).")
 
 
 # ---------------------------------------------------------------------------
@@ -786,16 +853,25 @@ def main():
     youtube_video_id = extract_youtube_video_id(args.youtube_url)
     youtube_edit_url = f"https://studio.youtube.com/video/{youtube_video_id}/edit" if youtube_video_id else None
 
-    send_notification_email({
+    # The completion email is NOT sent here any more. Spotify takes a while
+    # to pick up a new episode from the RSS feed, so the episode is queued in
+    # pending_social.json instead. The "Publish Social" workflow checks the
+    # queue every 30 minutes, and once the episode shows up on Spotify it
+    # posts to Facebook and Instagram and sends the completion email with
+    # every link included (see social_publisher.py).
+    queue_for_social({
         "title": args.title,
         "speaker": args.speaker,
         "sermon_date": args.sermon_date,
+        "slug": slug,
         "youtube_url": args.youtube_url,
         "youtube_edit_url": youtube_edit_url,
         "mp3_url": mp3_url,
         "feed_url": feed_url,
-        "blurb": blurb_parts["full"],  # with hashtags — this is what goes on YouTube
+        "blurb": blurb_parts["blurb"],        # no hashtags: Facebook / Instagram
+        "blurb_full": blurb_parts["full"],    # with hashtags: YouTube (goes in the email)
         "image_url": image_url,
+        "pco_episode_id": pco_result["episode_id"] if pco_result else None,
         "pco_episode_url": pco_result["episode_url"] if pco_result else None,
         "pco_edit_url": pco_result["edit_url"] if pco_result else None,
     })
