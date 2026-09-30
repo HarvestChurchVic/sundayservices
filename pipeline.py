@@ -127,112 +127,100 @@ def transcribe(mp3_path: Path) -> str:
 # Step 4: blurb generation via Claude API (replaces manual paste-into-chat)
 # ---------------------------------------------------------------------------
 
-BLURB_PROMPT_TEMPLATE = """You are a YouTube channel manager writing copy to \
-promote a sermon video from the source content. Your job is not to summarise \
-the content but to create curiosity and draw the viewer in so they click and \
-watch.
+BLURB_PROMPT_TEMPLATE = """Write the YouTube description for this week's \
+sermon video from Harvest Church, a multi-campus church in the Wimmera region \
+of Victoria, Australia. The preacher was {speaker}. The sermon title is \
+"{title}". The full transcript is at the bottom.
 
-The video is a sermon from Harvest Church, an Australian Christian Churches \
-multi-campus church in the Wimmera region of Victoria, preached by {speaker}. \
-The transcript below is the sermon itself.
+WHO IS WRITING
+You're someone on the Harvest Church team who was in the room on Sunday and \
+is telling a friend why this one is worth their time. Write like a real \
+Australian person talking: Australian spelling, contractions (it's, you'll, \
+he's), plain everyday words, sentences of different lengths. It should read \
+like a person wrote it quickly and well, not like marketing copy.
 
-Sermon title: {title}
+WHAT TO SAY
+Anchor the description in something concrete from the transcript: a story \
+the preacher actually told, the Bible passage or character they worked \
+from, a line they actually said (a short quote is fine), or a question they \
+put to the room. Specific beats vague every time. Name real details instead \
+of hinting at them ("there's a story about his dad's old ute" beats "there's \
+a moment in here you won't forget"). Mention the preacher by the name given \
+above. Don't summarise the whole sermon and don't give away its conclusion, \
+but don't be coy either.
 
-Write a YouTube video description using this structure:
+For this one, start from: {hook_style}
 
-An opening hook of 2 to 3 sentences related to the video's core theme. Do \
-not reveal the answer or resolution. For this hook, use this specific \
-approach: {hook_style}
+SHAPE
+Two or three short paragraphs, 60 to 120 words in total. You can finish \
+with a plain, low-key invitation to watch, or just stop when you've said \
+enough. Don't finish on a one-word line, a slogan, or a clever \
+fragment.
 
-A short paragraph of 3 to 4 sentences that teases what the viewer will \
-encounter without spoiling it. Use language that creates anticipation.
+AVOID, BECAUSE THEY MAKE IT SOUND AI-WRITTEN
+- Lists of three (three adjectives, three phrases, three stories in a row). \
+Use one or two.
+- "Not X, but Y" or "It's not about X, it's about Y" constructions.
+- Opening with "What if", "Most people think/assume", "Have you ever", or \
+"There's a version of".
+- Asking a question and then answering it yourself.
+- Symmetrical, echoing sentences, and piles of abstract nouns (identity, \
+purpose, belonging, transformation).
+- Vague teasers: "there's something here", "there's a moment in this \
+sermon", "more than you might expect", "you won't hear X the same way again".
+- These words and phrases: {banned_list}.
+- Christian cliches ("life-changing", "powerful message", "on fire for God").
+- Em dashes. Use commas, full stops or colons instead.
+- Markdown, emojis, links, timestamps, or any intro like "Here's the \
+description".
 
-A one sentence call to action inviting the viewer to watch. For this line, \
-use this specific approach: {closing_style} Do not end with "Hit play and \
-find out..." or "Press play and see where this one takes you" — those are \
-overused; use the closing technique above instead.
+The last few descriptions we posted are below. Yours must not sound like \
+them: different opening, different rhythm, different closing, none of their \
+stock phrases.
+{recent_section}
 
-Then on a new line, write exactly the marker "===HASHTAGS===" on its own \
-line, followed by a list of 10 to 15 relevant hashtags using title case, \
-each on its own line. This marker must appear exactly once and nowhere \
-else in your response.
+OUTPUT
+The description text only. Then a line containing exactly ===HASHTAGS=== \
+and then 10 to 15 relevant hashtags in title case, one per line. The marker \
+must appear exactly once.
 
-Tone: warm, direct, and conversational. Avoid Christian cliche phrases like \
-"life-changing" or "powerful message." Write as if you are talking to someone \
-who is spiritually curious but not necessarily a regular churchgoer. Do not \
-include timestamps, links, or any placeholder text. Do not use em dashes \
-anywhere; use commas, colons, or separate sentences instead. Do not use any \
-markdown formatting (no asterisks, no headers), and do not include any \
-leading meta text like "Here are the show notes for this episode:" — output \
-pure prose ready to publish as-is.
-{recent_openings_section}
 Transcript:
 {transcript}
 """
 
-# Rotated to force variety in the opening hook and closing line, since
-# leaving this to chance tends to converge on the same patterns every time
-# ("What if...?" openings, "Hit play and find out..." closings).
-OPENING_STYLES = [
-    "A direct question aimed at the listener's own life (not 'What if...' - "
-    "something more like 'Have you ever caught yourself...')",
-    "A bold, flat statement of fact or claim, no question mark",
-    "A vivid, specific image or scene from everyday life",
-    "A short paraphrase or echo of a line from the passage itself",
-    "A first-person-style admission, as if the preacher is confessing "
-    "something ('There's a version of faith that...')",
-    "A contrast or tension stated plainly ('On one side... on the other...')",
-    "A relatable, mundane everyday scenario that leads into the theme",
-    "A provocative one-line claim that sounds almost like a challenge",
-    "Naming a common misconception people have, then setting it up to be "
-    "addressed",
-    "A scene-setting description of a moment in Scripture, present tense",
-    "Starting mid-thought, as though continuing a conversation already "
-    "underway",
-    "A confession of doubt, struggle, or uncertainty",
-    "Directly naming a paradox or tension in the theme",
-    "An invitation to imagine a specific situation",
-    "A short, punchy sentence fragment rather than a full sentence",
-    "A callback to a well-known saying or verse, reframed unexpectedly",
-    "Describing what it feels like to be in the situation the sermon "
-    "addresses, without naming the theme yet",
-    "A statement about what most people assume, setting up to challenge it",
-    "An observation about a small, specific detail from the sermon that "
-    "hints at the bigger theme",
-    "A statement addressed to a specific kind of listener ('If you've ever "
-    "felt like...')",
+# Words and phrases that had become the house style of the AI blurbs (counted
+# across the first 196 episodes: "honest" appeared in 95 of them, "this one"
+# in 77, "most people" in 61, "quietly" in 58, "unpack" in 52...). Any draft
+# that uses one gets sent back once for a rewrite.
+BANNED_PHRASES = [
+    "honest", "this one", "most people", "quietly", "unpack", "uncomfortabl",
+    "sit with", "sitting with", "let it land", "let it settle", "lands",
+    "weave", "journey", "explore", "delve", "dive into", "dives into",
+    "digs into", "dig into", "deep dive", "cuts", "powerful", "profound",
+    "truly", "deeper", "stop you cold", "in the best way", "overlooked",
+    "strangest", "what if", "there's something here", "there is something here",
+    "a moment in", "than you might expect", "the same way again", "hit play",
+    "press play", "game-changer", "resonate", "invites you", "challenges us",
+    "reminds us", "at its core", "tapestry", "navigate", "embrace",
 ]
 
-CLOSING_STYLES = [
-    "A short two or three word fragment, not a full sentence ('Worth the "
-    "listen.')",
-    "A quiet, understated invitation with no urgency ('Settle in and let "
-    "this one land.')",
-    "Naming what the listener will walk away with, without saying 'hit "
-    "play'",
-    "A statement of confidence about how the episode will affect them "
-    "('You won't hear [theme] the same way again.')",
-    "An open-ended prompt that leaves something unresolved on purpose",
-    "A line acknowledging hesitation, low-pressure tone ('No pressure. "
-    "Just press play when you're ready.')",
-    "Framing it as something to revisit, not just a one-time listen",
-    "A direct address naming who this episode is especially for",
-    "A simple, grounded sign-off with no embellishment",
-    "A line about timing or relevance to right now",
-    "A challenge phrased gently, daring the listener to sit with it",
-    "Referencing a specific detail or phrase from the episode itself as a "
-    "teaser for the ending",
-    "A short rhetorical question that isn't answered",
-    "An observation about what listening might cost or ask of them",
-    "A line suggesting they might want to talk about it with someone after",
-    "A warm, plain statement instead of an instruction ('This one's for "
-    "anyone who needs to hear it.')",
-    "A callback to the opening line or image, bringing it full circle",
-    "A single evocative word or short phrase standing alone as the final "
-    "line",
-    "A line about curiosity rather than urgency ('See where it takes you.')",
-    "A plainly stated instruction using a verb other than 'hit play' or "
-    "'press play' (e.g. 'Have a listen', 'Tune in', 'Give it a go')",
+# Rotated so consecutive descriptions start from different kinds of material.
+# Every option points at something real in the transcript rather than a
+# writing trick, which is what makes the copy feel written by a person.
+OPENING_STYLES = [
+    "a specific story or illustration the preacher told, retold in a "
+    "sentence or two in your own words",
+    "a short line the preacher actually said, quoted, then why it stuck",
+    "the Bible passage or character the sermon works from, described "
+    "plainly as if to someone who hasn't read it",
+    "a question the preacher asked the congregation, put to the reader",
+    "a practical, everyday situation the sermon speaks into, described "
+    "simply (at work, at home, in the car, at the footy)",
+    "something the preacher admitted about themselves or their own life",
+    "a plain, factual statement of what the sermon is about, no hook at all",
+    "a detail from the sermon that surprised you, stated matter-of-factly",
+    "who this sermon is for, described in one ordinary sentence",
+    "what the preacher asked people to actually do this week",
 ]
 
 
@@ -244,62 +232,86 @@ def _pick_style(style_list, last_used):
     return random.choice(pool)
 
 
+def find_banned_phrases(text: str) -> list[str]:
+    lower = text.lower().replace("’", "'")
+    # \b so "lands" doesn't catch "islands", while stems like "uncomfortabl"
+    # still catch "uncomfortable" and "uncomfortably"
+    found = [p for p in BANNED_PHRASES if re.search(r"\b" + re.escape(p), lower)]
+    if "—" in text or "–" in text:
+        found.append("em dashes")
+    return found
+
+
+# Newest model first. If Anthropic ever retires a model name, the next one
+# in the list is used, so a Sunday run never fails over the model.
+BLURB_MODELS = ["claude-sonnet-5-5", "claude-sonnet-4-6"]
+
+
+def _ask_claude(client, messages) -> str:
+    import anthropic
+    last_error = None
+    for model in BLURB_MODELS:
+        try:
+            msg = client.messages.create(model=model, max_tokens=1200, messages=messages)
+            return msg.content[0].text.strip()
+        except anthropic.NotFoundError as e:
+            print(f"Model {model} isn't available ({e}); trying the next one.")
+            last_error = e
+    raise last_error
+
+
 def generate_blurb(transcript: str, title: str, speaker: str, recent_episodes: list = None) -> dict:
     """Returns {"blurb": ..., "hashtags": ..., "full": ..., "opening_style": ...,
-    "closing_style": ...} — "blurb" is the hook/teaser/CTA text with no
-    hashtags (used for the podcast feed description), "hashtags" is just
-    the hashtag list, and "full" is both combined (used for YouTube, where
-    hashtags are wanted). opening_style/closing_style record which style
-    was used, so the next run can avoid repeating it immediately.
+    "closing_style": ...}. "blurb" has no hashtags (podcast feed and
+    Facebook), "full" has them (YouTube). opening_style records which
+    starting point was used so the next run avoids repeating it.
 
-    recent_episodes: the last several episode dicts (most recent last), used
-    to steer the model away from repeating the same opening pattern, and to
-    look up the most recently used opening/closing styles."""
+    recent_episodes: the episode log (most recent last). The last five
+    blurbs are shown to the model as examples NOT to sound like.
+
+    If the draft uses any banned phrase, it's sent back once with the
+    specific phrases named, and the rewrite is used."""
     import anthropic
 
     print("Generating blurb via Claude API...")
     client = anthropic.Anthropic(api_key=env("ANTHROPIC_API_KEY"))
 
-    last_opening_style = None
-    last_closing_style = None
-    if recent_episodes:
-        last_ep = recent_episodes[-1]
-        last_opening_style = last_ep.get("opening_style")
-        last_closing_style = last_ep.get("closing_style")
-
+    last_opening_style = recent_episodes[-1].get("opening_style") if recent_episodes else None
     hook_style = _pick_style(OPENING_STYLES, last_opening_style)
-    closing_style = _pick_style(CLOSING_STYLES, last_closing_style)
 
-    recent_openings_section = ""
+    recent_section = ""
     if recent_episodes:
-        openings = []
-        for ep in recent_episodes[-10:]:
-            first_line = ep.get("blurb", "").strip().split("\n")[0].strip()
-            if first_line:
-                openings.append(f"- {first_line}")
-        if openings:
-            recent_openings_section = (
-                "\nHere are the opening lines from the last several episode "
-                "descriptions. Your opening must be clearly different in "
-                "structure and wording from every one of these — do not "
-                "reuse the same phrasing, sentence pattern, or rhythm:\n"
-                + "\n".join(openings) + "\n"
-            )
+        recent = [ep.get("blurb", "").strip() for ep in recent_episodes[-5:] if ep.get("blurb")]
+        if recent:
+            recent_section = "\n" + "\n\n---\n\n".join(recent) + "\n"
 
     prompt = BLURB_PROMPT_TEMPLATE.format(
         title=title,
         speaker=speaker,
         transcript=transcript,
         hook_style=hook_style,
-        closing_style=closing_style,
-        recent_openings_section=recent_openings_section,
+        banned_list=", ".join(f'"{p}"' for p in BANNED_PHRASES),
+        recent_section=recent_section,
     )
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1000,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    full_text = message.content[0].text.strip()
+    messages = [{"role": "user", "content": prompt}]
+    full_text = _ask_claude(client, messages)
+
+    problems = find_banned_phrases(full_text.split("===HASHTAGS===")[0])
+    if problems:
+        print(f"Draft used: {', '.join(problems)}. Asking for a rewrite...")
+        messages += [
+            {"role": "assistant", "content": full_text},
+            {"role": "user", "content": (
+                "That draft uses these, which are on the avoid list: "
+                + ", ".join(problems)
+                + ". Rewrite it without them, rephrasing naturally rather than "
+                "swapping in synonyms. Keep the same output format, including "
+                "the ===HASHTAGS=== marker and hashtags.")},
+        ]
+        full_text = _ask_claude(client, messages)
+        still = find_banned_phrases(full_text.split("===HASHTAGS===")[0])
+        if still:
+            print(f"Note: rewrite still uses: {', '.join(still)}")
 
     marker = "===HASHTAGS==="
     if marker in full_text:
@@ -319,7 +331,7 @@ def generate_blurb(transcript: str, title: str, speaker: str, recent_episodes: l
         "hashtags": hashtags_text,
         "full": full_clean,
         "opening_style": hook_style,
-        "closing_style": closing_style,
+        "closing_style": None,
     }
 
 
