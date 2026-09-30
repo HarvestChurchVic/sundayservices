@@ -568,7 +568,7 @@ Yours Truly,
 Claude
 """
     msg = MIMEText(body)
-    msg["Subject"] = f"Sermon processed: {context['title']}"
+    msg["Subject"] = f"{context.get('subject_prefix', '')}Sermon processed: {context['title']}"
     msg["From"] = env("EMAIL_FROM")
     msg["To"] = env("EMAIL_TO")
 

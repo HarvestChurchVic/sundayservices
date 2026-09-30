@@ -227,15 +227,17 @@ def graph_call(method: str, path: str, **params) -> dict:
     return body
 
 
-def post_to_facebook(item: dict) -> str:
+def post_to_facebook(item: dict, published: bool = True) -> str:
     """Link post on the Page. The Church Center episode is the main part of
     the post: Facebook shows it as a large preview card, using the title and
     artwork from the Church Center page. The blurb and the three links sit
     above it as the post text. (If there's no Church Center link, the YouTube
     link becomes the preview instead.) Returns a link to the post."""
     hero = item.get("pco_episode_url") or item.get("youtube_url")
-    result = graph_call("POST", f"{env('META_PAGE_ID')}/feed",
-                        link=hero, message=facebook_caption(item))
+    params = {"link": hero, "message": facebook_caption(item)}
+    if not published:
+        params["published"] = "false"   # hidden post: only Page admins can see it
+    result = graph_call("POST", f"{env('META_PAGE_ID')}/feed", **params)
     return f"https://www.facebook.com/{result['id']}"
 
 
@@ -403,13 +405,76 @@ def dry_run() -> None:
         sys.exit("\nOne or more connections failed. See above.")
 
 
+def find_pco_episode(title: str) -> dict | None:
+    """Finds a recent Sunday Sermons episode in Planning Center by title."""
+    from pipeline import PCO_BASE, PCO_CHANNEL_ID, pco_auth
+    resp = requests.get(f"{PCO_BASE}/channels/{PCO_CHANNEL_ID}/episodes?per_page=25&order=-created_at",
+                        auth=pco_auth(), timeout=30)
+    resp.raise_for_status()
+    for ep in resp.json().get("data", []):
+        if normalise_title(ep["attributes"].get("title") or "") == normalise_title(title):
+            return ep
+    return None
+
+
+def test_last_sermon() -> None:
+    """Real end-to-end test using the most recent sermon that has already
+    been through the pipeline: pulls its details from the feed, Planning
+    Center (Church Center link, YouTube link) and Spotify, then makes a
+    HIDDEN Facebook post (only Page admins can see it) and sends the
+    completion email marked [TEST]. Doesn't touch the queue files."""
+    latest = sorted(load_episode_log(), key=lambda e: e["pub_date"])[-1]
+    print(f"TEST using the latest sermon: {latest['title']} ({latest['pub_date'][:10]})\n")
+
+    item = {
+        "title": latest["title"],
+        "speaker": latest.get("speaker", ""),
+        "sermon_date": latest["pub_date"][:10],
+        "slug": "test-" + re.sub(r"[^a-z0-9]+", "-", latest["title"].lower()).strip("-"),
+        "blurb": latest["blurb"],
+        "image_url": latest.get("image_url"),
+        "mp3_url": latest["mp3_url"],
+        "feed_url": f"{env('R2_PUBLIC_BASE_URL').rstrip('/')}/feed.xml",
+        "subject_prefix": "[TEST] ",
+    }
+
+    ep = find_pco_episode(latest["title"])
+    if ep:
+        attrs = ep["attributes"]
+        item["pco_episode_id"] = ep["id"]
+        item["pco_episode_url"] = attrs.get("church_center_url") or get_pco_public_url(ep["id"])
+        item["pco_edit_url"] = f"https://publishing.planningcenteronline.com/sermons/episodes/{ep['id']}/edit"
+        item["youtube_url"] = attrs.get("library_video_url") or attrs.get("video_url")
+        print(f"Planning Center: found episode {ep['id']}")
+    else:
+        print("Planning Center: episode NOT found by title, so the post will have no Church Center link")
+    item["youtube_url"] = item.get("youtube_url") or "(YouTube link not found)"
+    print(f"Church Center link: {item.get('pco_episode_url')}")
+    print(f"YouTube link: {item['youtube_url']}")
+
+    item["spotify_url"] = find_spotify_episode(item, spotify_recent_episodes())
+    print(f"Spotify link: {item['spotify_url'] or 'NOT FOUND'}")
+
+    item["facebook_result"] = post_to_facebook(item, published=False)
+    print(f"\nHidden Facebook post created: {item['facebook_result']}")
+    print("(Only Page admins can see it. Publish or delete it in Meta Business Suite > Content.)")
+
+    send_notification_email(item)
+    print("Test completion email sent (subject starts with [TEST]).")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Spotify check, social posts and completion email")
     parser.add_argument("--dry-run", action="store_true", help="Check connections and preview posts only")
+    parser.add_argument("--test-last-sermon", action="store_true",
+                        help="Hidden Facebook post + [TEST] email for the latest sermon")
     args = parser.parse_args()
 
     if args.dry_run:
         dry_run()
+        return
+    if args.test_last_sermon:
+        test_last_sermon()
         return
 
     pending = load_json(PENDING_FILE, [])
