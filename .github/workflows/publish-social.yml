@@ -1,0 +1,100 @@
+name: Publish Social
+
+# Runs every 30 minutes. If a sermon is waiting in pending_social.json it
+# checks Spotify for the episode, and once it's there posts to Facebook and
+# Instagram and sends the completion email. If nothing is queued the run
+# finishes in a few seconds without doing anything.
+#
+# Run it by hand with "dry_run" ticked to test every connection and preview
+# the posts for the latest episode. A dry run posts and sends nothing.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run: test connections and preview posts only (nothing is posted or emailed)"
+        type: boolean
+        default: true
+
+# Never let two runs overlap, or an episode could be posted twice.
+concurrency:
+  group: publish-social
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Anything queued?
+        id: queue
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            echo "work=yes" >> "$GITHUB_OUTPUT"
+          elif [ -f pending_social.json ] && [ "$(python3 -c 'import json;print(len(json.load(open("pending_social.json"))))')" != "0" ]; then
+            echo "work=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "Nothing queued. Finished."
+            echo "work=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python
+        if: steps.queue.outputs.work == 'yes'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        if: steps.queue.outputs.work == 'yes'
+        run: pip install requests boto3 python-dotenv feedgen Pillow
+
+      - name: Run social publisher
+        if: steps.queue.outputs.work == 'yes'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+          PODCAST_IMAGE_URL: ${{ secrets.PODCAST_IMAGE_URL }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          PCO_CLIENT_ID: ${{ secrets.PCO_CLIENT_ID }}
+          PCO_SECRET: ${{ secrets.PCO_SECRET }}
+          META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
+          META_PAGE_TOKEN: ${{ secrets.META_PAGE_TOKEN }}
+          # Instagram is switched off for now (see INSTAGRAM_ENABLED in social_publisher.py)
+          # INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            python social_publisher.py --dry-run
+          else
+            python social_publisher.py
+          fi
+
+      - name: Commit queue changes
+        if: always() && steps.queue.outputs.work == 'yes' && github.event.inputs.dry_run != 'true'
+        run: |
+          git config user.name "sermon-pipeline-bot"
+          git config user.email "actions@github.com"
+          git add pending_social.json
+          if [ -f social_history.json ]; then git add social_history.json; fi
+          git diff --staged --quiet && exit 0
+          git commit -m "Social publisher update"
+          for i in 1 2 3 4 5; do
+            git push && exit 0
+            echo "Push rejected (probably a concurrent run), retrying ($i/5)..."
+            git pull --rebase
+          done
+          echo "::error::Failed to save the social queue after retries. Check pending_social.json by hand so nothing is posted twice."
+          exit 1

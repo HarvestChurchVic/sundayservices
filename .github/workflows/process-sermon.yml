@@ -161,7 +161,7 @@ jobs:
         run: |
           git config user.name "sermon-pipeline-bot"
           git config user.email "actions@github.com"
-          git add feed_items.json run_history.json
+          git add feed_items.json run_history.json pending_social.json
           git diff --staged --quiet && exit 0
           git commit -m "Add episode: ${{ github.event.inputs.title }}"
           for i in 1 2 3 4 5; do
