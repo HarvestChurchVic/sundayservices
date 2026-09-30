@@ -233,8 +233,11 @@ def post_to_facebook(item: dict, published: bool = True) -> str:
     artwork from the Church Center page. The blurb and the three links sit
     above it as the post text. (If there's no Church Center link, the YouTube
     link becomes the preview instead.) Returns a link to the post."""
-    hero = item.get("pco_episode_url") or item.get("youtube_url")
-    params = {"link": hero, "message": facebook_caption(item)}
+    hero = next((u for u in (item.get("pco_episode_url"), item.get("youtube_url"))
+                 if u and u.startswith("http")), None)
+    params = {"message": facebook_caption(item)}
+    if hero:
+        params["link"] = hero
     if not published:
         params["published"] = "false"   # hidden post: only Page admins can see it
     result = graph_call("POST", f"{env('META_PAGE_ID')}/feed", **params)
@@ -406,15 +409,26 @@ def dry_run() -> None:
 
 
 def find_pco_episode(title: str) -> dict | None:
-    """Finds a recent Sunday Sermons episode in Planning Center by title."""
+    """Finds a Sunday Sermons episode in Planning Center by title. Pages
+    through the whole channel (Planning Center doesn't reliably sort this
+    list), and if the same title appears more than once, returns the one
+    most recently made available."""
     from pipeline import PCO_BASE, PCO_CHANNEL_ID, pco_auth
-    resp = requests.get(f"{PCO_BASE}/channels/{PCO_CHANNEL_ID}/episodes?per_page=25&order=-created_at",
-                        auth=pco_auth(), timeout=30)
-    resp.raise_for_status()
-    for ep in resp.json().get("data", []):
-        if normalise_title(ep["attributes"].get("title") or "") == normalise_title(title):
-            return ep
-    return None
+    wanted = normalise_title(title)
+    matches = []
+    url = f"{PCO_BASE}/channels/{PCO_CHANNEL_ID}/episodes?per_page=100"
+    pages = 0
+    while url and pages < 20:
+        resp = requests.get(url, auth=pco_auth(), timeout=30)
+        resp.raise_for_status()
+        body = resp.json()
+        matches += [ep for ep in body.get("data", [])
+                    if normalise_title(ep["attributes"].get("title") or "") == wanted]
+        url = (body.get("links") or {}).get("next")
+        pages += 1
+    if not matches:
+        return None
+    return max(matches, key=lambda ep: ep["attributes"].get("published_to_library_at") or "")
 
 
 def test_last_sermon() -> None:
@@ -447,10 +461,10 @@ def test_last_sermon() -> None:
         item["youtube_url"] = attrs.get("library_video_url") or attrs.get("video_url")
         print(f"Planning Center: found episode {ep['id']}")
     else:
-        print("Planning Center: episode NOT found by title, so the post will have no Church Center link")
-    item["youtube_url"] = item.get("youtube_url") or "(YouTube link not found)"
+        sys.exit("Planning Center: couldn't find this sermon's episode by title, so the test has "
+                 "stopped before posting anything.")
     print(f"Church Center link: {item.get('pco_episode_url')}")
-    print(f"YouTube link: {item['youtube_url']}")
+    print(f"YouTube link: {item.get('youtube_url') or 'NOT FOUND'}")
 
     item["spotify_url"] = find_spotify_episode(item, spotify_recent_episodes())
     print(f"Spotify link: {item['spotify_url'] or 'NOT FOUND'}")
