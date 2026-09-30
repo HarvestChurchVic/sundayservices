@@ -17,7 +17,11 @@ on:
         type: boolean
         default: true
       test_last_sermon:
-        description: "Real test with last week's sermon: HIDDEN Facebook post (admins only) + [TEST] email. Untick Dry run to use this."
+        description: "Real test with last week's sermon: Facebook post + [TEST] email. Untick Dry run to use this."
+        type: boolean
+        default: false
+      test_public:
+        description: "With the real test: make the Facebook post PUBLIC (like next Sunday's) instead of hidden"
         type: boolean
         default: false
 
@@ -83,7 +87,11 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             python social_publisher.py --dry-run
           elif [ "${{ github.event.inputs.test_last_sermon }}" = "true" ]; then
-            python social_publisher.py --test-last-sermon
+            if [ "${{ github.event.inputs.test_public }}" = "true" ]; then
+              python social_publisher.py --test-last-sermon --public
+            else
+              python social_publisher.py --test-last-sermon
+            fi
           else
             python social_publisher.py
           fi
