@@ -227,6 +227,12 @@ def graph_call(method: str, path: str, **params) -> dict:
     return body
 
 
+def check_page_token() -> bool:
+    """True if META_PAGE_TOKEN is the Page's own token. With a Page token,
+    'me' is the Page itself; with a personal token, 'me' is the person."""
+    return str(graph_call("GET", "me", fields="id").get("id")) == str(env("META_PAGE_ID"))
+
+
 def post_to_facebook(item: dict, published: bool = True) -> str:
     """Link post on the Page. The Church Center episode is the main part of
     the post: Facebook shows it as a large preview card, using the title and
@@ -384,6 +390,13 @@ def dry_run() -> None:
     try:
         page = graph_call("GET", env("META_PAGE_ID"), fields="name")
         print(f"Facebook Page: connected to '{page.get('name')}'")
+        if check_page_token():
+            print("Facebook token: correct type (a Page token, so posts go out as the Page)")
+        else:
+            ok = False
+            print("Facebook token: WRONG TYPE. META_PAGE_TOKEN is a personal (user) token, not the "
+                  "Page's token, so posting will fail. Redo step A4 of SOCIAL_SETUP.md and use the "
+                  "access_token shown inside the Harvest Church entry.")
     except Exception as e:
         ok = False
         print(f"Facebook Page: FAILED ({e})")
@@ -469,6 +482,10 @@ def test_last_sermon() -> None:
     item["spotify_url"] = find_spotify_episode(item, spotify_recent_episodes())
     print(f"Spotify link: {item['spotify_url'] or 'NOT FOUND'}")
 
+    if not check_page_token():
+        sys.exit("\nMETA_PAGE_TOKEN is a personal (user) token, not the Page's token, so Facebook "
+                 "won't let it post as the Page. Redo step A4 of SOCIAL_SETUP.md and use the "
+                 "access_token shown inside the Harvest Church entry. Nothing was posted or emailed.")
     item["facebook_result"] = post_to_facebook(item, published=False)
     print(f"\nHidden Facebook post created: {item['facebook_result']}")
     print("(Only Page admins can see it. Publish or delete it in Meta Business Suite > Content.)")
