@@ -16,6 +16,10 @@ on:
         description: "Dry run: test connections and preview posts only (nothing is posted or emailed)"
         type: boolean
         default: true
+      test_last_sermon:
+        description: "Real test with last week's sermon: HIDDEN Facebook post (admins only) + [TEST] email. Untick Dry run to use this."
+        type: boolean
+        default: false
 
 # Never let two runs overlap, or an episode could be posted twice.
 concurrency:
@@ -35,7 +39,7 @@ jobs:
       - name: Anything queued?
         id: queue
         run: |
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ] || [ "${{ github.event.inputs.test_last_sermon }}" = "true" ]; then
             echo "work=yes" >> "$GITHUB_OUTPUT"
           elif [ -f pending_social.json ] && [ "$(python3 -c 'import json;print(len(json.load(open("pending_social.json"))))')" != "0" ]; then
             echo "work=yes" >> "$GITHUB_OUTPUT"
@@ -78,12 +82,14 @@ jobs:
         run: |
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             python social_publisher.py --dry-run
+          elif [ "${{ github.event.inputs.test_last_sermon }}" = "true" ]; then
+            python social_publisher.py --test-last-sermon
           else
             python social_publisher.py
           fi
 
       - name: Commit queue changes
-        if: always() && steps.queue.outputs.work == 'yes' && github.event.inputs.dry_run != 'true'
+        if: always() && steps.queue.outputs.work == 'yes' && github.event.inputs.dry_run != 'true' && github.event.inputs.test_last_sermon != 'true'
         run: |
           git config user.name "sermon-pipeline-bot"
           git config user.email "actions@github.com"
