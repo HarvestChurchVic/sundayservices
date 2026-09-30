@@ -252,8 +252,15 @@ def _ask_claude(client, messages) -> str:
     last_error = None
     for model in BLURB_MODELS:
         try:
-            msg = client.messages.create(model=model, max_tokens=1200, messages=messages)
-            return msg.content[0].text.strip()
+            # Newer models can think before answering, which comes back as
+            # extra "thinking" blocks ahead of the text, so collect only the
+            # text blocks. max_tokens leaves room for that thinking.
+            msg = client.messages.create(model=model, max_tokens=8000, messages=messages)
+            text = "".join(b.text for b in msg.content if getattr(b, "type", "") == "text").strip()
+            if text:
+                return text
+            print(f"Model {model} returned no text (stop reason: {msg.stop_reason}); trying the next one.")
+            last_error = RuntimeError(f"{model} returned no text")
         except anthropic.NotFoundError as e:
             print(f"Model {model} isn't available ({e}); trying the next one.")
             last_error = e
