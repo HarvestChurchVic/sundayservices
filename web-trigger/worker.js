@@ -4,7 +4,7 @@
  * Serves the upload form itself on any GET request, and handles two POST
  * endpoints:
  *   POST /presign  { filename, contentType, passphrase }  -> { uploadUrl, key }
- *   POST /trigger  { title, speaker, sermonDate, videoKey, thumbnailKey, passphrase }
+ *   POST /trigger  { title, speaker, guestName, sermonDate, videoKey, thumbnailKey, passphrase }
  *                  -> triggers the "Process Sermon" GitHub Action
  *
  * Since the form is served from this same Worker/domain, form submissions
@@ -82,6 +82,10 @@ const FORM_HTML = `<!DOCTYPE html>
     </select>
   </label>
 
+  <label id="guestNameLabel" style="display: none;">Guest speaker's name <span class="hint">(exactly as it should appear, e.g. Ps Wayne Alcorn)</span>
+    <input type="text" id="guestName">
+  </label>
+
   <label>Series
     <select id="series">
       <option value="">No Series</option>
@@ -121,6 +125,19 @@ const form = document.getElementById("sermonForm");
 const statusDiv = document.getElementById("status");
 const submitBtn = document.getElementById("submitBtn");
 const seriesSelect = document.getElementById("series");
+const speakerSelect = document.getElementById("speaker");
+const guestNameLabel = document.getElementById("guestNameLabel");
+const guestNameInput = document.getElementById("guestName");
+
+// Show the guest name box only when "Guest Speaker" is picked
+function toggleGuestName() {
+  const isGuest = speakerSelect.value === "Guest Speaker";
+  guestNameLabel.style.display = isGuest ? "" : "none";
+  guestNameInput.required = isGuest;
+  if (!isGuest) guestNameInput.value = "";
+}
+speakerSelect.addEventListener("change", toggleGuestName);
+toggleGuestName();
 
 async function loadSeries() {
   try {
@@ -169,6 +186,7 @@ form.addEventListener("submit", async (e) => {
 
   const title = document.getElementById("title").value;
   const speaker = document.getElementById("speaker").value;
+  const guestName = speaker === "Guest Speaker" ? guestNameInput.value.trim() : "";
   const seriesId = document.getElementById("series").value;
   const sermonDate = document.getElementById("sermonDate").value;
   const youtubeUrl = document.getElementById("youtubeUrl").value;
@@ -178,6 +196,11 @@ form.addEventListener("submit", async (e) => {
 
   if (thumbnailFile && thumbnailFile.type !== "image/png") {
     setStatus("Error: the thumbnail must be a PNG file.", "error");
+    submitBtn.disabled = false;
+    return;
+  }
+  if (speaker === "Guest Speaker" && !guestName) {
+    setStatus("Error: please enter the guest speaker's name.", "error");
     submitBtn.disabled = false;
     return;
   }
@@ -207,7 +230,7 @@ form.addEventListener("submit", async (e) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title, speaker, seriesId, sermonDate, youtubeUrl,
+        title, speaker, guestName, seriesId, sermonDate, youtubeUrl,
         videoKey, thumbnailKey, passphrase,
       }),
     });
@@ -216,8 +239,9 @@ form.addEventListener("submit", async (e) => {
       throw new Error(\`Failed to start processing: \${await triggerResp.text()}\`);
     }
 
-    setStatus("Success! Processing has started — you'll get an email when it's done (usually 5-15 minutes).", "success");
+    setStatus("Success! Processing has started. You'll get an email once the sermon is live on Spotify and posted to Facebook (usually within a few hours).", "success");
     form.reset();
+    toggleGuestName();
   } catch (err) {
     setStatus(\`Error: \${err.message}\`, "error");
   } finally {
@@ -385,13 +409,16 @@ async function handlePresign(request, env, corsHeaders) {
 
 async function handleTrigger(request, env, corsHeaders) {
   const body = await request.json();
-  const { title, speaker, seriesId, sermonDate, videoKey, thumbnailKey, passphrase } = body;
+  const { title, speaker, guestName, seriesId, sermonDate, videoKey, thumbnailKey, passphrase } = body;
 
   if (env.FORM_PASSPHRASE && passphrase !== env.FORM_PASSPHRASE) {
     return jsonResponse({ error: "Incorrect passphrase" }, 401, corsHeaders);
   }
   if (!title || !speaker || !sermonDate || !videoKey) {
     return jsonResponse({ error: "title, speaker, sermonDate, and videoKey are required" }, 400, corsHeaders);
+  }
+  if (speaker === "Guest Speaker" && !(guestName || "").trim()) {
+    return jsonResponse({ error: "Please enter the guest speaker's name" }, 400, corsHeaders);
   }
 
   // If a thumbnail was uploaded, copy it into the images/ folder under the
@@ -417,6 +444,7 @@ async function handleTrigger(request, env, corsHeaders) {
         youtube_url: body.youtubeUrl || "",
         title,
         speaker,
+        guest_name: (guestName || "").trim(),
         sermon_date: sermonDate,
         source_file: videoKey,
         series_id: seriesId || "",
