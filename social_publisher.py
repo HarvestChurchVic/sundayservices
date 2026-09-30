@@ -444,7 +444,7 @@ def find_pco_episode(title: str) -> dict | None:
     return max(matches, key=lambda ep: ep["attributes"].get("published_to_library_at") or "")
 
 
-def test_last_sermon() -> None:
+def test_last_sermon(public: bool = False) -> None:
     """Real end-to-end test using the most recent sermon that has already
     been through the pipeline: pulls its details from the feed, Planning
     Center (Church Center link, YouTube link) and Spotify, then makes a
@@ -486,9 +486,13 @@ def test_last_sermon() -> None:
         sys.exit("\nMETA_PAGE_TOKEN is a personal (user) token, not the Page's token, so Facebook "
                  "won't let it post as the Page. Redo step A4 of SOCIAL_SETUP.md and use the "
                  "access_token shown inside the Harvest Church entry. Nothing was posted or emailed.")
-    item["facebook_result"] = post_to_facebook(item, published=False)
-    print(f"\nHidden Facebook post created: {item['facebook_result']}")
-    print("(Only Page admins can see it. Publish or delete it in Meta Business Suite > Content.)")
+    item["facebook_result"] = post_to_facebook(item, published=public)
+    if public:
+        print(f"\nPUBLIC Facebook post created: {item['facebook_result']}")
+        print("(Anyone can see it. Check it in a private window, then delete it from the Page if you like.)")
+    else:
+        print(f"\nHidden Facebook post created: {item['facebook_result']}")
+        print("(Only Page admins can see it.)")
 
     send_notification_email(item)
     print("Test completion email sent (subject starts with [TEST]).")
@@ -498,14 +502,16 @@ def main():
     parser = argparse.ArgumentParser(description="Spotify check, social posts and completion email")
     parser.add_argument("--dry-run", action="store_true", help="Check connections and preview posts only")
     parser.add_argument("--test-last-sermon", action="store_true",
-                        help="Hidden Facebook post + [TEST] email for the latest sermon")
+                        help="Facebook post + [TEST] email for the latest sermon (hidden unless --public)")
+    parser.add_argument("--public", action="store_true",
+                        help="With --test-last-sermon: make the test post public, like a real run")
     args = parser.parse_args()
 
     if args.dry_run:
         dry_run()
         return
     if args.test_last_sermon:
-        test_last_sermon()
+        test_last_sermon(public=args.public)
         return
 
     pending = load_json(PENDING_FILE, [])
