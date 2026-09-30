@@ -1,0 +1,43 @@
+name: Preview Blurbs
+
+# Shows how the blurb writer would describe the last few sermons, old vs
+# new, by email. Changes nothing: no feed, YouTube, Planning Center or
+# Facebook updates. Takes roughly 10 minutes per sermon (transcription).
+on:
+  workflow_dispatch:
+    inputs:
+      count:
+        description: "How many recent sermons to preview"
+        required: true
+        default: "3"
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Preview blurbs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          WHISPER_MODEL_SIZE: small
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python preview_blurbs.py --count "${{ github.event.inputs.count }}"
