@@ -6,6 +6,8 @@
  *   POST /presign  { filename, contentType, passphrase }  -> { uploadUrl, key }
  *   POST /trigger  { title, speaker, guestName, sermonDate, videoKey, thumbnailKey, passphrase }
  *                  -> triggers the "Process Sermon" GitHub Action
+ *   POST /trigger  { testOnly: true, testPublic, videoKey, passphrase }
+ *                  -> triggers a Facebook test in the "Publish Social" GitHub Action
  *
  * Since the form is served from this same Worker/domain, form submissions
  * are same-origin and don't need CORS at all. ALLOWED_ORIGIN/CORS headers
@@ -28,6 +30,7 @@
 
 const GITHUB_REPO = "HarvestChurchVic/sundayservices";
 const GITHUB_WORKFLOW = "process-sermon.yml";
+const SOCIAL_WORKFLOW = "publish-social.yml"; // used by the form's "Test only" option
 const PCO_CHANNEL_ID = "28229"; // Sunday Sermons
 
 const FORM_HTML = `<!DOCTYPE html>
@@ -57,6 +60,10 @@ const FORM_HTML = `<!DOCTYPE html>
   #status.success { background: #f0fff4; color: #22543d; display: block; }
   #status.error { background: #fff5f5; color: #822727; display: block; }
   .hint { font-weight: normal; color: #666; font-size: 0.8rem; }
+  label.checkbox { font-weight: normal; }
+  label.checkbox input { margin-right: 6px; }
+  #testBox { margin-top: 16px; padding: 10px 12px; background: #fffaf0; border: 1px solid #f6e05e; border-radius: 4px; }
+  #testBox label.checkbox:first-child { margin-top: 0; }
 </style>
 </head>
 <body>
@@ -65,6 +72,14 @@ const FORM_HTML = `<!DOCTYPE html>
 <h1>Process a Sermon</h1>
 
 <form id="sermonForm">
+  <div id="testBox">
+    <label class="checkbox"><input type="checkbox" id="testOnly">Test only: post this video to Facebook as a test
+      <span class="hint">(doesn't process a sermon; uses last Sunday's details and sends a [TEST] email)</span></label>
+    <label class="checkbox" id="testPublicLabel" style="display: none;"><input type="checkbox" id="testPublic">Make the test post public
+      <span class="hint">(otherwise only Page admins can see it)</span></label>
+  </div>
+
+  <div id="sermonFields">
   <label>Sermon title
     <input type="text" id="title" required>
   </label>
@@ -100,11 +115,13 @@ const FORM_HTML = `<!DOCTYPE html>
     <input type="text" id="youtubeUrl">
   </label>
 
+  </div>
+
   <label>Sermon video file
     <input type="file" id="videoFile" accept="video/*" required>
   </label>
 
-  <label>Thumbnail image <span class="hint">(optional, PNG only)</span>
+  <label id="thumbnailLabel">Thumbnail image <span class="hint">(optional, PNG only)</span>
     <input type="file" id="thumbnailFile" accept="image/png">
   </label>
 
@@ -138,6 +155,28 @@ function toggleGuestName() {
 }
 speakerSelect.addEventListener("change", toggleGuestName);
 toggleGuestName();
+
+// "Test only" hides the sermon details: the test uses last Sunday's
+const testOnlyBox = document.getElementById("testOnly");
+const testPublicBox = document.getElementById("testPublic");
+function toggleTestMode() {
+  const isTest = testOnlyBox.checked;
+  document.getElementById("sermonFields").style.display = isTest ? "none" : "";
+  document.getElementById("thumbnailLabel").style.display = isTest ? "none" : "";
+  document.getElementById("testPublicLabel").style.display = isTest ? "" : "none";
+  for (const id of ["title", "speaker", "sermonDate"]) {
+    document.getElementById(id).required = !isTest;
+  }
+  if (isTest) {
+    guestNameInput.required = false;
+  } else {
+    toggleGuestName();
+    testPublicBox.checked = false;
+  }
+  submitBtn.textContent = isTest ? "Upload & Test" : "Upload & Process";
+}
+testOnlyBox.addEventListener("change", toggleTestMode);
+toggleTestMode();
 
 async function loadSeries() {
   try {
@@ -199,6 +238,37 @@ form.addEventListener("submit", async (e) => {
     submitBtn.disabled = false;
     return;
   }
+  const testOnly = testOnlyBox.checked;
+  if (testOnly) {
+    if (!videoFile || !passphrase) {
+      setStatus("Error: choose a video file and enter the passphrase.", "error");
+      submitBtn.disabled = false;
+      return;
+    }
+    try {
+      setStatus("Requesting upload link for the test video...", "info");
+      const { uploadUrl, key: videoKey } = await getPresignedUrl(videoFile, passphrase);
+      setStatus(\`Uploading test video (\${(videoFile.size / 1e6).toFixed(0)} MB)... this may take a while.\`, "info");
+      await uploadFile(videoFile, uploadUrl);
+      setStatus("Starting the Facebook test...", "info");
+      const resp = await fetch(\`\${WORKER_URL}/trigger\`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ testOnly: true, testPublic: testPublicBox.checked, videoKey, passphrase }),
+      });
+      if (!resp.ok) throw new Error(\`Failed to start the test: \${await resp.text()}\`);
+      setStatus("Test started. Facebook usually takes 10 to 40 minutes to process a full sermon. Watch the Publish Social run in GitHub Actions, and a [TEST] email arrives when it's done.", "success");
+      form.reset();
+      toggleGuestName();
+      toggleTestMode();
+    } catch (err) {
+      setStatus(\`Error: \${err.message}\`, "error");
+    } finally {
+      submitBtn.disabled = false;
+    }
+    return;
+  }
+
   if (speaker === "Guest Speaker" && !guestName) {
     setStatus("Error: please enter the guest speaker's name.", "error");
     submitBtn.disabled = false;
@@ -242,6 +312,7 @@ form.addEventListener("submit", async (e) => {
     setStatus("Success! Processing has started. You'll get an email once the sermon is live on Spotify and posted to Facebook (usually within a few hours).", "success");
     form.reset();
     toggleGuestName();
+    toggleTestMode();
   } catch (err) {
     setStatus(\`Error: \${err.message}\`, "error");
   } finally {
@@ -413,6 +484,38 @@ async function handleTrigger(request, env, corsHeaders) {
 
   if (env.FORM_PASSPHRASE && passphrase !== env.FORM_PASSPHRASE) {
     return jsonResponse({ error: "Incorrect passphrase" }, 401, corsHeaders);
+  }
+
+  // "Test only" on the form: send the uploaded video straight to the
+  // Facebook test in the Publish Social workflow. No sermon is processed.
+  if (body.testOnly) {
+    if (!videoKey) {
+      return jsonResponse({ error: "videoKey is required" }, 400, corsHeaders);
+    }
+    const testUrl = `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/${SOCIAL_WORKFLOW}/dispatches`;
+    const testResp = await fetch(testUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "User-Agent": "sermon-upload-worker",
+      },
+      body: JSON.stringify({
+        ref: "main",
+        inputs: {
+          dry_run: "false",
+          test_last_sermon: "true",
+          test_public: body.testPublic ? "true" : "false",
+          test_video_key: videoKey,
+        },
+      }),
+    });
+    if (!testResp.ok) {
+      const text = await testResp.text();
+      return jsonResponse({ error: `GitHub dispatch failed: ${testResp.status} ${text}` }, 500, corsHeaders);
+    }
+    return jsonResponse({ ok: true, test: true }, 200, corsHeaders);
   }
   if (!title || !speaker || !sermonDate || !videoKey) {
     return jsonResponse({ error: "title, speaker, sermonDate, and videoKey are required" }, 400, corsHeaders);
