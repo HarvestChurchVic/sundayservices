@@ -25,6 +25,10 @@
   #status.success { background: #f0fff4; color: #22543d; display: block; }
   #status.error { background: #fff5f5; color: #822727; display: block; }
   .hint { font-weight: normal; color: #666; font-size: 0.8rem; }
+  label.checkbox { font-weight: normal; }
+  label.checkbox input { margin-right: 6px; }
+  #testBox { margin-top: 16px; padding: 10px 12px; background: #fffaf0; border: 1px solid #f6e05e; border-radius: 4px; }
+  #testBox label.checkbox:first-child { margin-top: 0; }
 </style>
 </head>
 <body>
@@ -33,6 +37,14 @@
 <h1>Process a Sermon</h1>
 
 <form id="sermonForm">
+  <div id="testBox">
+    <label class="checkbox"><input type="checkbox" id="testOnly">Test only: post this video to Facebook as a test
+      <span class="hint">(doesn't process a sermon; uses last Sunday's details and sends a [TEST] email)</span></label>
+    <label class="checkbox" id="testPublicLabel" style="display: none;"><input type="checkbox" id="testPublic">Make the test post public
+      <span class="hint">(otherwise only Page admins can see it)</span></label>
+  </div>
+
+  <div id="sermonFields">
   <label>Sermon title
     <input type="text" id="title" required>
   </label>
@@ -68,11 +80,13 @@
     <input type="text" id="youtubeUrl">
   </label>
 
+  </div>
+
   <label>Sermon video file
     <input type="file" id="videoFile" accept="video/*" required>
   </label>
 
-  <label>Thumbnail image <span class="hint">(optional, PNG only)</span>
+  <label id="thumbnailLabel">Thumbnail image <span class="hint">(optional, PNG only)</span>
     <input type="file" id="thumbnailFile" accept="image/png">
   </label>
 
@@ -106,6 +120,28 @@ function toggleGuestName() {
 }
 speakerSelect.addEventListener("change", toggleGuestName);
 toggleGuestName();
+
+// "Test only" hides the sermon details: the test uses last Sunday's
+const testOnlyBox = document.getElementById("testOnly");
+const testPublicBox = document.getElementById("testPublic");
+function toggleTestMode() {
+  const isTest = testOnlyBox.checked;
+  document.getElementById("sermonFields").style.display = isTest ? "none" : "";
+  document.getElementById("thumbnailLabel").style.display = isTest ? "none" : "";
+  document.getElementById("testPublicLabel").style.display = isTest ? "" : "none";
+  for (const id of ["title", "speaker", "sermonDate"]) {
+    document.getElementById(id).required = !isTest;
+  }
+  if (isTest) {
+    guestNameInput.required = false;
+  } else {
+    toggleGuestName();
+    testPublicBox.checked = false;
+  }
+  submitBtn.textContent = isTest ? "Upload & Test" : "Upload & Process";
+}
+testOnlyBox.addEventListener("change", toggleTestMode);
+toggleTestMode();
 
 async function loadSeries() {
   try {
@@ -167,6 +203,37 @@ form.addEventListener("submit", async (e) => {
     submitBtn.disabled = false;
     return;
   }
+  const testOnly = testOnlyBox.checked;
+  if (testOnly) {
+    if (!videoFile || !passphrase) {
+      setStatus("Error: choose a video file and enter the passphrase.", "error");
+      submitBtn.disabled = false;
+      return;
+    }
+    try {
+      setStatus("Requesting upload link for the test video...", "info");
+      const { uploadUrl, key: videoKey } = await getPresignedUrl(videoFile, passphrase);
+      setStatus(`Uploading test video (${(videoFile.size / 1e6).toFixed(0)} MB)... this may take a while.`, "info");
+      await uploadFile(videoFile, uploadUrl);
+      setStatus("Starting the Facebook test...", "info");
+      const resp = await fetch(`${WORKER_URL}/trigger`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ testOnly: true, testPublic: testPublicBox.checked, videoKey, passphrase }),
+      });
+      if (!resp.ok) throw new Error(`Failed to start the test: ${await resp.text()}`);
+      setStatus("Test started. Facebook usually takes 10 to 40 minutes to process a full sermon. Watch the Publish Social run in GitHub Actions, and a [TEST] email arrives when it's done.", "success");
+      form.reset();
+      toggleGuestName();
+      toggleTestMode();
+    } catch (err) {
+      setStatus(`Error: ${err.message}`, "error");
+    } finally {
+      submitBtn.disabled = false;
+    }
+    return;
+  }
+
   if (speaker === "Guest Speaker" && !guestName) {
     setStatus("Error: please enter the guest speaker's name.", "error");
     submitBtn.disabled = false;
@@ -210,6 +277,7 @@ form.addEventListener("submit", async (e) => {
     setStatus("Success! Processing has started. You'll get an email once the sermon is live on Spotify and posted to Facebook (usually within a few hours).", "success");
     form.reset();
     toggleGuestName();
+    toggleTestMode();
   } catch (err) {
     setStatus(`Error: ${err.message}`, "error");
   } finally {
