@@ -14,6 +14,9 @@ on:
       speaker:
         description: "Speaker name"
         required: true
+      guest_name:
+        description: "Guest speaker's name (only when Speaker is 'Guest Speaker')"
+        required: false
       sermon_date:
         description: "Sunday date, YYYY-MM-DD"
         required: true
@@ -90,6 +93,9 @@ jobs:
           PODCAST_WEBSITE: ${{ secrets.PODCAST_WEBSITE }}
           PCO_CLIENT_ID: ${{ secrets.PCO_CLIENT_ID }}
           PCO_SECRET: ${{ secrets.PCO_SECRET }}
+          # Passed through an environment variable so any name (apostrophes,
+          # quotes and all) reaches the pipeline intact
+          GUEST_NAME: ${{ github.event.inputs.guest_name }}
         run: |
           set +e
           python pipeline.py "${{ github.event.inputs.youtube_url }}" \
@@ -97,7 +103,8 @@ jobs:
             --speaker "${{ github.event.inputs.speaker }}" \
             --sermon-date "${{ github.event.inputs.sermon_date }}" \
             --source-file "${{ github.event.inputs.source_file }}" \
-            --series-id "${{ github.event.inputs.series_id }}" 2>&1 | tee pipeline_debug.log
+            --series-id "${{ github.event.inputs.series_id }}" \
+            --guest-name "$GUEST_NAME" 2>&1 | tee pipeline_debug.log
           exit ${PIPESTATUS[0]}
         shell: bash
 
