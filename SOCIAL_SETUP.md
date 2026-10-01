@@ -2,29 +2,33 @@
 
 ## What changed
 
-The pipeline no longer emails you as soon as it finishes. The new process is:
+The pipeline no longer emails you as soon as it finishes. The process is now:
 
-1. Upload video
+1. Upload video (through the form)
 2. Process audio
 3. Transcribe audio
 4. Create blurb
 5. Create Planning Center episode
 6. Update the RSS feed (Spotify, Apple etc.)
-7. Queue the episode in `pending_social.json`
-8. The **Publish Social** workflow checks every 30 minutes for the episode on Spotify (same title, released within 3 days of the sermon date)
-9. Once it's on Spotify:
-   - **Facebook Page post:** the Church Center episode is the main part of the post, shown as a large preview card with its title and artwork. Above it, the blurb, then links in this order: Church Center, Spotify, YouTube. No hashtags.
-   - **Completion email:** everything it had before, plus the public Church Center link, the Spotify episode link and the Facebook post link. Its instructions now end with a step to share the Facebook post into the Harvest Church Group, with the link included.
-10. Share the Facebook Page post into the Harvest Church Group by hand. Meta doesn't allow any app to post into Groups.
+7. Queue the episode in `pending_social.json`. The uploaded video is kept in storage (R2) for now.
+8. The **Publish Social** workflow runs straight away and uploads the **full sermon video** to the Harvest Church Facebook Page. The post's text is the blurb (no hashtags), ending with "Links to watch or listen on Church Center, Spotify and YouTube are in the comments."
+9. Once Facebook has processed the video, it's deleted from storage.
+10. Every 30 minutes the workflow checks Spotify for the episode (same title, released within 3 days of the sermon date).
+11. Once it's on Spotify:
+    - **Links comment:** the Page comments on its own video post with the links, in this order: Church Center, Spotify, YouTube.
+    - **Completion email:** everything it had before, plus the public Church Center link, the Spotify episode link and the Facebook post link. Its last step is to share the Facebook post into the Harvest Church Group, with the link included.
+12. Share the Facebook post into the Harvest Church Group by hand. Meta doesn't allow any app to post into Groups.
 
-The email goes out after the Facebook post so it can include the post link.
+**Why a video with the links in a comment?** Facebook now limits many business Pages to 2 posts with links per month. A video post has no links in it, so it doesn't count, and Facebook gives native video far more reach. Links in comments aren't limited.
+
+If a sermon ever arrives without an uploaded video, the thumbnail is posted as a photo instead, with the same text and the same links comment.
 
 Instagram posting is built but **switched off** for now. See "Turning Instagram back on" at the end.
 
 **Safety nets**
 
-- **Spotify never shows the episode:** after 24 hours the post and email go out anyway, without a Spotify link. The email says when this has happened.
-- **The Facebook post fails:** the next run tries again. Nothing is posted twice and only one email is sent. After 6 failed tries (about 3 hours) the email goes out anyway with the failure noted.
+- **Spotify never shows the episode:** after 24 hours the links comment and email go out anyway, without a Spotify link. The email says when this has happened.
+- **Something fails** (upload, Facebook's processing, or the comment): the next run tries that step again. Nothing is posted twice and only one email is sent. After 6 failed tries the email goes out anyway with the failure noted, and the video is removed from storage.
 
 ## One-off setup
 
@@ -53,8 +57,11 @@ You need to be an admin of the Harvest Facebook Page.
 8. **Add the posting permissions:**
    - On the dashboard, click **Use cases** in the left menu (or find the use case on the **Dashboard** page).
    - Next to **Manage everything on your Page**, click **Customize**.
-   - In the permissions list, click **Add** next to `pages_manage_posts` and next to `pages_read_engagement`. (`pages_show_list` and `business_management` are already included.)
-9. Leave the app in **Development** mode (it starts that way). Because you're the admin of both the app and the Page, it doesn't need Meta's app review.
+   - In the permissions list, click **Add** next to `pages_manage_posts`, `pages_read_engagement` and `pages_manage_engagement`. (`pages_show_list` and `business_management` are already included.) `pages_manage_engagement` is what lets the Page add the links comment.
+9. Switch the app to **Live** mode. This matters: while an app is in Development mode, anything it posts can only be seen by people who have a role on the app, so the rest of the world (including other Page admins) won't see the posts.
+   - In the left menu, go to **App settings** > **Basic**. Fill in **Privacy policy URL** (the privacy page on harvestchurch.org.au), choose a **Category** (for example "Business and pages"), and click **Save changes**.
+   - At the top of the dashboard, flip the **App mode** toggle from **Development** to **Live**. If it lists anything else it needs first, complete those items and try again.
+   - Because the app only ever posts to a Page you manage, it doesn't need Meta's App Review.
 
 **A2. Get a token**
 
@@ -64,6 +71,7 @@ You need to be an admin of the Harvest Facebook Page.
    - `pages_show_list`
    - `pages_read_engagement`
    - `pages_manage_posts`
+   - `pages_manage_engagement`
    - `business_management`
 4. Click **Generate Access Token**. When the Facebook pop-up asks, choose the Harvest Page and allow everything.
 
@@ -92,17 +100,25 @@ Keep `META_PAGE_TOKEN` private. It can post to the Page. Only put it in GitHub s
 
 ### Part C: Test it
 
+**Dry run (checks connections, posts nothing):**
+
 1. Go to **Actions** > **Publish Social** > **Run workflow**. Leave **Dry run** ticked and click **Run workflow**.
 2. Open the run and expand **Run social publisher**. You should see:
    - `Spotify: connected. Episode link: https://open.spotify.com/episode/...` (for the latest sermon)
-   - `Facebook Page: connected to 'Harvest ...'`
+   - `Facebook Page: connected to 'Harvest ...'` and `Facebook token: correct type`
    - `Instagram: switched off`
-   - A preview of the Facebook post text
-3. A dry run posts nothing and sends nothing. The first real post will happen after the next sermon goes through **Process Sermon**.
+   - A preview of the video post's text and of the links comment
+
+**Real test (a 20-second clip of last week's sermon):**
+
+1. **Run workflow** again with **Dry run** unticked and **Real test with last week's sermon** ticked. Leave **PUBLIC** unticked for a hidden post, or tick it to see exactly what a Sunday post looks like (then delete it afterwards).
+2. The log shows the clip being made, uploaded, processed by Facebook, the links comment being added and the clip being removed from storage. A [TEST] completion email follows.
 
 ## Good to know
 
 - If the Page token ever stops working (for example after a Facebook password change or someone being removed as a Page admin), repeat A2 to A4 and update `META_PAGE_TOKEN`.
+- **If the links comment fails with a permissions error,** the token is missing `pages_manage_engagement`. Add it (A1 step 8 and A2), repeat A2 to A4 and update `META_PAGE_TOKEN`.
+- The video's music must be cleared for Facebook (for example from Facebook's or YouTube's royalty-free libraries), or Facebook may mute or block it.
 - GitHub pauses scheduled workflows after 60 days with no commits to the repo. Weekly sermons keep it active. If there's a long break and it's paused, GitHub shows a button on the Actions page to turn it back on.
 - To change the link labels ("Watch on Church Center" etc.) or the 24-hour wait, edit the settings near the top of `social_publisher.py`.
 

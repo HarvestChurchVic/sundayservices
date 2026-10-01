@@ -66,9 +66,11 @@ def env(key, required=True, default=None):
 def download_and_extract(youtube_url: str, slug: str, source_key: str = None) -> Path:
     """Gets the MP4 either from a manually-uploaded R2 object (source_key) or,
     if not provided, by downloading it from YouTube with yt-dlp. Either way,
-    extracts the audio to MP3, deletes the MP4, and returns the MP3 path.
-    The MP4 is never uploaded or kept — YouTube is already the permanent
-    host for the video itself."""
+    extracts the audio to MP3, deletes the local MP4, and returns the MP3 path.
+
+    An uploaded video (source_key) is left in R2: social_publisher.py
+    uploads it to the Facebook Page and deletes it from R2 once Facebook
+    has finished processing it. YouTube stays the permanent home for it."""
     DOWNLOADS.mkdir(exist_ok=True)
     mp4_path = DOWNLOADS / f"{slug}.mp4"
     mp3_path = DOWNLOADS / f"{slug}.mp3"
@@ -97,13 +99,8 @@ def download_and_extract(youtube_url: str, slug: str, source_key: str = None) ->
         capture_output=True,
     )
 
-    print("Deleting MP4 (YouTube already hosts the video permanently)...")
+    print("Deleting the local MP4...")
     mp4_path.unlink()
-
-    if source_key:
-        print(f"Removing raw upload from R2 ({source_key})...")
-        client = get_r2_client()
-        client.delete_object(Bucket=env("R2_BUCKET_NAME"), Key=source_key)
 
     return mp3_path
 
@@ -425,6 +422,10 @@ def send_notification_email(context: dict) -> None:
     youtube_edit_line = context.get("youtube_edit_url") or context.get("youtube_url") or "(not yet published)"
     pco_edit_line = context.get("pco_edit_url") or "(Planning Center episode was NOT created automatically, so add this one manually)"
     pco_public_line = context.get("pco_episode_url") or "(not available yet)"
+    # The speaker to pick in Planning Center, e.g. "Guest Speaker (Wayne Alcorn)"
+    pco_speaker_line = context.get("pco_speaker") or context["speaker"]
+    if pco_speaker_line != context["speaker"]:
+        pco_speaker_line += f" ({context['speaker']})"
 
     spotify_line = context.get("spotify_url") or "(not available yet)"
     if context.get("spotify_fallback"):
@@ -479,7 +480,7 @@ YOUTUBE EDIT URL
 PLANNING CENTER EPISODE EDIT URL
 {pco_edit_line}
 
-(And just in case you forgot) - {context['speaker']}
+(And just in case you forgot) - {pco_speaker_line}
 
 4. Then go to the Facebook post below, hit Share and share it into the Harvest Church Group (Facebook doesn't let us automate this one)
 
@@ -680,7 +681,7 @@ def queue_for_social(context: dict) -> None:
     pending = json.loads(PENDING_SOCIAL_FILE.read_text()) if PENDING_SOCIAL_FILE.exists() else []
     context = dict(context)
     context["queued_at"] = datetime.now(timezone.utc).isoformat()
-    context["done"] = {"facebook": False, "instagram": False, "email": False}
+    context["done"] = {}
     context["failures"] = 0
     pending.append(context)
     PENDING_SOCIAL_FILE.write_text(json.dumps(pending, indent=2))
@@ -720,6 +721,8 @@ def main():
     parser.add_argument("youtube_url", help="URL of the finished, edited YouTube clip (for reference/notification)")
     parser.add_argument("--title", required=True, help="Sermon title")
     parser.add_argument("--speaker", required=True, help="Speaker name")
+    parser.add_argument("--guest-name", default=None,
+                        help="The guest's name as it should appear, when --speaker is 'Guest Speaker'.")
     parser.add_argument("--sermon-date", required=True, help="Sunday date, YYYY-MM-DD")
     parser.add_argument("--source-file", default=None,
                          help="R2 object key of a manually-uploaded raw video "
@@ -731,25 +734,32 @@ def main():
 
     slug = f"{args.sermon_date}-{slugify(args.title)}"
 
+    # For a guest, the name typed into the form is what appears everywhere
+    # (blurb, podcast feed, email, status page). Planning Center still uses
+    # its "Guest Speaker" speaker, so args.speaker is kept for that.
+    speaker_name = args.speaker
+    if args.speaker == "Guest Speaker" and (args.guest_name or "").strip():
+        speaker_name = args.guest_name.strip()
+
     episodes = load_episode_log()
     existing = find_duplicate_episode(episodes, args.title, args.sermon_date)
     if existing:
-        send_duplicate_notice_email(args.title, args.speaker, args.sermon_date, existing.get("mp3_url", "unknown"))
-        record_run("duplicate_skipped", args.title, args.sermon_date, args.speaker,
+        send_duplicate_notice_email(args.title, speaker_name, args.sermon_date, existing.get("mp3_url", "unknown"))
+        record_run("duplicate_skipped", args.title, args.sermon_date, speaker_name,
                    detail="Matching title and date already in feed_items.json")
         print("Duplicate detected. Nothing was processed. Exiting cleanly.")
         return
 
     mp3_path = download_and_extract(args.youtube_url, slug, source_key=args.source_file)
     transcript = transcribe(mp3_path)
-    blurb_parts = generate_blurb(transcript, args.title, args.speaker, recent_episodes=episodes)
+    blurb_parts = generate_blurb(transcript, args.title, speaker_name, recent_episodes=episodes)
 
     mp3_url = upload_to_r2(mp3_path, f"audio/{slug}.mp3")
     image_url = find_episode_image_url(args.source_file)
 
     episodes.append({
         "title": args.title,
-        "speaker": args.speaker,
+        "speaker": speaker_name,
         "blurb": blurb_parts["blurb"],  # no hashtags — this is what podcast apps show
         "mp3_url": mp3_url,
         "filesize": mp3_path.stat().st_size,
@@ -791,7 +801,8 @@ def main():
     # every link included (see social_publisher.py).
     queue_for_social({
         "title": args.title,
-        "speaker": args.speaker,
+        "speaker": speaker_name,
+        "pco_speaker": args.speaker,
         "sermon_date": args.sermon_date,
         "slug": slug,
         "youtube_url": args.youtube_url,
@@ -801,6 +812,7 @@ def main():
         "blurb": blurb_parts["blurb"],        # no hashtags: Facebook / Instagram
         "blurb_full": blurb_parts["full"],    # with hashtags: YouTube (goes in the email)
         "image_url": image_url,
+        "video_key": args.source_file or None,   # R2 video for Facebook; deleted after posting
         "pco_episode_id": pco_result["episode_id"] if pco_result else None,
         "pco_episode_url": pco_result["episode_url"] if pco_result else None,
         "pco_edit_url": pco_result["edit_url"] if pco_result else None,
@@ -809,7 +821,7 @@ def main():
     print("\nDone.")
     print(f"Feed URL (submit this once to Apple Podcasts Connect / Spotify for Podcasters): {feed_url}")
 
-    record_run("success", args.title, args.sermon_date, args.speaker, detail=mp3_url)
+    record_run("success", args.title, args.sermon_date, speaker_name, detail=mp3_url)
 
 
 if __name__ == "__main__":

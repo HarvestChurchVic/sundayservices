@@ -1,35 +1,40 @@
 #!/usr/bin/env python3
 """
-Harvest Church: Spotify check, social posts and completion email.
+Harvest Church: Facebook video, links comment, Spotify check and completion email.
 
-pipeline.py no longer sends the completion email straight away. It adds the
-new episode to pending_social.json instead. This script is run every 30
-minutes by the "Publish Social" GitHub Actions workflow. For each queued
-episode it:
+pipeline.py doesn't send the completion email straight away. It adds the new
+episode to pending_social.json instead, and leaves the uploaded sermon video
+in R2. This script is run by the "Publish Social" GitHub Actions workflow
+(straight after each Process Sermon run, then every 30 minutes). For each
+queued episode it:
 
-  1. Looks the episode up on Spotify (title match, released within a few
-     days of the sermon date)
-  2. Once it's on Spotify (or after SPOTIFY_WAIT_HOURS, without the Spotify
-     link, so nothing waits forever):
-       a. Posts to the Facebook Page: a link post with the Church Center
-          episode as the preview card, and the blurb + links (Church Center,
-          then Spotify, then YouTube) as the text. No hashtags.
-       b. Posts to Instagram: thumbnail + blurb, no links, no hashtags
-          (SWITCHED OFF for now, see INSTAGRAM_ENABLED)
-       c. Sends the completion email with every link, including the
-          Facebook post so it can be shared into the Facebook Group
-  3. Moves the episode from pending_social.json to social_history.json
+  1. Uploads the full sermon video to the Facebook Page straight away, with
+     the blurb as its description (no hashtags, no links in the post, so it
+     never counts towards Facebook's limit on link posts)
+  2. Waits for Facebook to finish processing the video, then deletes the
+     video from R2
+  3. Looks the episode up on Spotify (title match, released within a few
+     days of the sermon date). After SPOTIFY_WAIT_HOURS it carries on
+     without the Spotify link, so nothing waits forever.
+  4. Adds a comment from the Page with the links: Church Center, then
+     Spotify, then YouTube
+  5. Sends the completion email with every link, including the Facebook
+     post so it can be shared into the Facebook Group
+  6. Moves the episode from pending_social.json to social_history.json
 
-Each of the three steps is recorded separately, so if one fails (say
-Instagram is down) the next run only retries that step and nobody gets two
-emails or a doubled-up Facebook post. After MAX_FAILURES failed runs the
-episode is dropped from the queue and a warning email is sent.
+If an episode has no video (say it was processed some other way), step 1
+posts the thumbnail as a photo instead, and everything else is the same.
+
+Each step is recorded separately, so if one fails the next run only retries
+that step: nobody gets two emails or a doubled-up post. After MAX_FAILURES
+failed runs the episode is dropped from the queue and a warning email is sent.
 
 Usage:
-    python social_publisher.py              # normal run (what the schedule does)
-    python social_publisher.py --dry-run    # test: checks every connection and
-                                            # prints the posts for the latest
-                                            # episode, but posts/sends nothing
+    python social_publisher.py                     # normal run (what the schedule does)
+    python social_publisher.py --dry-run           # checks connections, previews the post
+                                                   # and comment, posts/sends nothing
+    python social_publisher.py --test-last-sermon  # real end-to-end test with a short clip
+                                                   # (hidden post unless --public)
 """
 
 import argparse
@@ -37,6 +42,7 @@ import io
 import json
 import re
 import smtplib
+import subprocess
 import sys
 import time
 import unicodedata
@@ -59,6 +65,7 @@ PENDING_FILE = WORKDIR / "pending_social.json"
 HISTORY_FILE = WORKDIR / "social_history.json"
 
 GRAPH = "https://graph.facebook.com/v26.0"
+GRAPH_VIDEO = "https://graph-video.facebook.com/v26.0"   # Facebook's host for video uploads
 SPOTIFY_SHOW_ID = "4c3QXWv8nOjf2KIaAB91MU"  # Harvest Church Sunday Sermons
 BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/140.0 Safari/537.36")
@@ -77,6 +84,11 @@ LINK_LABELS = (
     "Listen on Spotify",
     "Watch on YouTube",
 )
+
+# Last line of the video's description, pointing people to the comment
+COMMENT_POINTER = "Links to watch or listen on Church Center, Spotify and YouTube are in the comments."
+
+VIDEO_READY_WAIT_MINUTES = 20   # how long the test waits for Facebook to process its clip
 
 
 # ---------------------------------------------------------------------------
@@ -158,11 +170,19 @@ def strip_hashtags(text: str) -> str:
     return re.sub(r"[ \t]+\n", "\n", text).strip()
 
 
-def facebook_caption(item: dict) -> str:
-    blurb = strip_hashtags(item["blurb"])
+def facebook_description(item: dict) -> str:
+    """The text on the Facebook post itself: the blurb, then a pointer to the
+    links comment. No links here, so the post isn't a "link post"."""
+    return strip_hashtags(item["blurb"]) + "\n\n" + COMMENT_POINTER
+
+
+def links_comment(item: dict) -> str:
+    """The first comment: Church Center, Spotify, YouTube, in that order.
+    Any link we don't have (e.g. Spotify after 24 hours) is left out."""
     links = [item.get("pco_episode_url"), item.get("spotify_url"), item.get("youtube_url")]
-    link_lines = [f"{label}: {url}" for label, url in zip(LINK_LABELS, links) if url]
-    return blurb + "\n\n" + "\n".join(link_lines)
+    lines = [f"{label}: {url}" for label, url in zip(LINK_LABELS, links)
+             if url and str(url).startswith("http")]
+    return "\n".join(lines)
 
 
 def instagram_caption(item: dict) -> str:
@@ -233,21 +253,105 @@ def check_page_token() -> bool:
     return str(graph_call("GET", "me", fields="id").get("id")) == str(env("META_PAGE_ID"))
 
 
-def post_to_facebook(item: dict, published: bool = True) -> str:
-    """Link post on the Page. The Church Center episode is the main part of
-    the post: Facebook shows it as a large preview card, using the title and
-    artwork from the Church Center page. The blurb and the three links sit
-    above it as the post text. (If there's no Church Center link, the YouTube
-    link becomes the preview instead.) Returns a link to the post."""
-    hero = next((u for u in (item.get("pco_episode_url"), item.get("youtube_url"))
-                 if u and u.startswith("http")), None)
-    params = {"message": facebook_caption(item)}
-    if hero:
-        params["link"] = hero
+def _video_call(data: dict, files: dict = None, attempts: int = 3) -> dict:
+    """One call to the Page's video upload endpoint, retried on network
+    hiccups (a 2 GB upload makes hundreds of these)."""
+    url = f"{GRAPH_VIDEO}/{env('META_PAGE_ID')}/videos"
+    data = dict(data, access_token=env("META_PAGE_TOKEN"))
+    last = None
+    for attempt in range(1, attempts + 1):
+        try:
+            resp = requests.post(url, data=data, files=files, timeout=300)
+            body = resp.json() if resp.content else {}
+            if resp.ok and "error" not in body:
+                return body
+            last = RuntimeError("Meta video upload error: "
+                                + body.get("error", {}).get("message", resp.text[:300]))
+            if resp.status_code < 500:
+                break   # a real error, not worth retrying
+        except requests.RequestException as e:
+            last = e
+        time.sleep(5 * attempt)
+    raise last
+
+
+def upload_video_to_facebook(video_key: str, title: str, description: str,
+                             published: bool = True) -> str:
+    """Uploads the sermon video from R2 to the Facebook Page in chunks
+    (Facebook's resumable upload, which handles multi-GB files), streaming
+    each chunk straight from R2 so the whole file never has to fit in
+    memory. Returns the Facebook video ID."""
+    client = get_r2_client()
+    bucket = env("R2_BUCKET_NAME")
+    size = client.head_object(Bucket=bucket, Key=video_key)["ContentLength"]
+    print(f"Uploading video to Facebook ({size / 1e6:.0f} MB)...")
+
+    start = _video_call({"upload_phase": "start", "file_size": str(size)})
+    session, video_id = start["upload_session_id"], start["video_id"]
+    s_off, e_off = int(start["start_offset"]), int(start["end_offset"])
+    last_report = 0
+    while s_off < e_off:
+        chunk = client.get_object(Bucket=bucket, Key=video_key,
+                                  Range=f"bytes={s_off}-{e_off - 1}")["Body"].read()
+        r = _video_call({"upload_phase": "transfer", "upload_session_id": session,
+                         "start_offset": str(s_off)},
+                        files={"video_file_chunk": ("chunk.mp4", chunk, "application/octet-stream")})
+        s_off, e_off = int(r["start_offset"]), int(r["end_offset"])
+        if s_off - last_report >= size // 10 or s_off >= size:
+            print(f"  {min(s_off, size) / size:.0%} uploaded")
+            last_report = s_off
+
+    fin = _video_call({"upload_phase": "finish", "upload_session_id": session,
+                       "title": title, "description": description,
+                       "published": "true" if published else "false"})
+    if not fin.get("success"):
+        raise RuntimeError(f"Facebook didn't confirm the video upload finished: {fin}")
+    return str(video_id)
+
+
+def facebook_video_status(video_id: str) -> tuple[str, str | None]:
+    """Returns (status, link to the post). status is "ready", "processing"
+    or "error"."""
+    info = graph_call("GET", video_id, fields="status,permalink_url")
+    status = (info.get("status") or {}).get("video_status", "processing")
+    link = info.get("permalink_url")
+    if link and link.startswith("/"):
+        link = "https://www.facebook.com" + link
+    if status == "ready":
+        return "ready", link
+    if status in ("error", "expired"):
+        return "error", link
+    return "processing", link
+
+
+def post_photo_to_facebook(item: dict, published: bool = True) -> tuple[str, str]:
+    """Fallback when there's no video: the thumbnail as a photo post, with
+    the same description. Returns (post id, link to the post)."""
+    params = {"url": thumbnail_url(item), "caption": facebook_description(item)}
     if not published:
-        params["published"] = "false"   # hidden post: only Page admins can see it
-    result = graph_call("POST", f"{env('META_PAGE_ID')}/feed", **params)
-    return f"https://www.facebook.com/{result['id']}"
+        params["published"] = "false"
+    result = graph_call("POST", f"{env('META_PAGE_ID')}/photos", **params)
+    post_id = result.get("post_id") or result["id"]
+    return post_id, f"https://www.facebook.com/{post_id}"
+
+
+def post_links_comment(target_id: str, item: dict) -> None:
+    """Adds the links as a comment from the Page on the video or photo post."""
+    message = links_comment(item)
+    if not message:
+        print("No links to comment with, skipping the comment.")
+        return
+    graph_call("POST", f"{target_id}/comments", message=message)
+
+
+def delete_source_video(item: dict) -> None:
+    """Removes the uploaded sermon video from R2 once Facebook has its own
+    copy. YouTube is the permanent home for the video."""
+    key = item.get("video_key")
+    if key:
+        get_r2_client().delete_object(Bucket=env("R2_BUCKET_NAME"), Key=key)
+        print(f"Removed the video from R2 ({key}).")
+    item["video_deleted"] = True
 
 
 def post_to_instagram(item: dict) -> str:
@@ -298,12 +402,72 @@ def hours_since(iso: str) -> float:
     return (datetime.now(timezone.utc) - datetime.fromisoformat(iso)).total_seconds() / 3600
 
 
+def _record_failure(item: dict, what: str, error: Exception) -> bool:
+    """Counts a failed step. Returns True if we should give up on the step."""
+    item["failures"] = item.get("failures", 0) + 1
+    print(f"[{item['title']}] {what} failed ({item['failures']}/{MAX_FAILURES}): {error}")
+    return item["failures"] >= MAX_FAILURES
+
+
 def process_item(item: dict, spotify_episodes: list[dict] | None) -> bool:
     """Works through one queued episode. Returns True when it's finished
     (everything done), False if it should stay in the queue."""
     title = item["title"]
+    done = item.setdefault("done", {})
 
-    # 1. Spotify link
+    # 1. The Facebook post: the video, straight away
+    if not done.get("facebook_post"):
+        try:
+            if item.get("video_key"):
+                item["facebook_video_id"] = upload_video_to_facebook(
+                    item["video_key"], title, facebook_description(item))
+                item["facebook_comment_target"] = item["facebook_video_id"]
+                print(f"[{title}] Video uploaded to Facebook (video {item['facebook_video_id']}). "
+                      f"Facebook is processing it.")
+            else:
+                post_id, link = post_photo_to_facebook(item)
+                item["facebook_comment_target"] = post_id
+                item["facebook_result"] = link
+                done["facebook_ready"] = True
+                print(f"[{title}] No video for this sermon, posted the thumbnail instead: {link}")
+            done["facebook_post"] = True
+        except Exception as e:
+            item["facebook_result"] = f"FAILED ({e})"
+            if not _record_failure(item, "Facebook post", e):
+                return False
+            print(f"[{title}] Giving up on the Facebook post. Sending the email anyway.")
+            done["facebook_post"] = done["facebook_ready"] = done["facebook_comment"] = True
+            done["gave_up_facebook"] = True
+
+    # 2. Wait for Facebook to finish processing the video
+    if done.get("facebook_post") and not done.get("facebook_ready"):
+        status, link = facebook_video_status(item["facebook_video_id"])
+        if link:
+            item["facebook_result"] = link
+        if status == "ready":
+            done["facebook_ready"] = True
+            print(f"[{title}] Facebook has finished processing the video: {link}")
+        elif status == "error":
+            # Start the upload again next run
+            e = RuntimeError("Facebook couldn't process the video")
+            done["facebook_post"] = False
+            if not _record_failure(item, "Facebook video processing", e):
+                return False
+            item["facebook_result"] = "FAILED (Facebook couldn't process the video)"
+            done["facebook_post"] = done["facebook_ready"] = done["facebook_comment"] = True
+            done["gave_up_facebook"] = True
+        else:
+            print(f"[{title}] Facebook is still processing the video. Will check again.")
+            return False
+
+    # Facebook has its own copy now, so the video can come out of R2
+    if done.get("facebook_ready") and item.get("video_key") and not item.get("video_deleted"):
+        try:
+            delete_source_video(item)
+        except Exception as e:
+            print(f"[{title}] Couldn't remove the video from R2 ({e}). Will try again next run.")
+
+    # 3. Spotify link
     if not item.get("spotify_url") and not item.get("spotify_fallback"):
         found = find_spotify_episode(item, spotify_episodes) if spotify_episodes is not None else None
         if found:
@@ -312,7 +476,7 @@ def process_item(item: dict, spotify_episodes: list[dict] | None) -> bool:
         elif hours_since(item["queued_at"]) >= SPOTIFY_WAIT_HOURS:
             item["spotify_url"] = None
             item["spotify_fallback"] = True
-            print(f"[{title}] Not on Spotify after {SPOTIFY_WAIT_HOURS} hours, posting without the Spotify link.")
+            print(f"[{title}] Not on Spotify after {SPOTIFY_WAIT_HOURS} hours, carrying on without the Spotify link.")
         else:
             print(f"[{title}] Not on Spotify yet (queued {hours_since(item['queued_at']):.1f} hours ago). Will check again.")
             return False
@@ -321,40 +485,33 @@ def process_item(item: dict, spotify_episodes: list[dict] | None) -> bool:
     if not item.get("pco_episode_url") and item.get("pco_episode_id"):
         item["pco_episode_url"] = get_pco_public_url(item["pco_episode_id"])
 
-    done = item.setdefault("done", {})
-    had_error = False
-
-    # 2. Facebook Page
-    if not done.get("facebook"):
+    # 4. The links comment
+    if not done.get("facebook_comment"):
         try:
-            item["facebook_result"] = post_to_facebook(item)
-            done["facebook"] = True
-            print(f"[{title}] Facebook post: {item['facebook_result']}")
+            post_links_comment(item["facebook_comment_target"], item)
+            done["facebook_comment"] = True
+            print(f"[{title}] Links comment added.")
         except Exception as e:
-            had_error = True
-            item["facebook_result"] = f"FAILED ({e})"
-            print(f"[{title}] Facebook post failed: {e}")
+            if not _record_failure(item, "Links comment", e):
+                return False
+            print(f"[{title}] Giving up on the links comment. Sending the email anyway.")
+            item["facebook_comment_failed"] = str(e)
+            done["facebook_comment"] = True
 
-    # 3. Instagram (switched off for now, see INSTAGRAM_ENABLED at the top)
+    # Instagram (switched off for now, see INSTAGRAM_ENABLED at the top)
     if INSTAGRAM_ENABLED and not done.get("instagram"):
         try:
             item["instagram_result"] = post_to_instagram(item)
             done["instagram"] = True
             print(f"[{title}] Instagram post: {item['instagram_result']}")
         except Exception as e:
-            had_error = True
             item["instagram_result"] = f"FAILED ({e})"
-            print(f"[{title}] Instagram post failed: {e}")
+            if not _record_failure(item, "Instagram post", e):
+                return False
+            done["instagram"] = True
 
-    if had_error:
-        item["failures"] = item.get("failures", 0) + 1
-        if item["failures"] < MAX_FAILURES:
-            print(f"[{title}] Will retry the failed post next run ({item['failures']}/{MAX_FAILURES}).")
-            return False
-        print(f"[{title}] Giving up on the failed post after {MAX_FAILURES} tries. Sending the email anyway.")
-
-    # 4. Completion email (once, after the posts, so it can include the
-    #    Facebook post link for sharing into the Group)
+    # 5. Completion email (once, after the links comment, so the post it
+    #    links to is complete when people share it into the Group)
     if not done.get("email"):
         # The email's blurb is the YouTube one, which keeps its hashtags
         send_notification_email(dict(item, blurb=item.get("blurb_full") or item["blurb"]))
@@ -412,8 +569,10 @@ def dry_run() -> None:
         print("Instagram: switched off (INSTAGRAM_ENABLED = False)")
 
     print("\n----- Facebook post -----")
-    print("Preview card (main part of the post): the Church Center episode link")
-    print("Post text:\n" + facebook_caption(item))
+    print(f"Video: the full sermon video, titled \"{item['title']}\"")
+    print("Description:\n" + facebook_description(item))
+    print("\n----- Links comment (added once the Spotify link is found) -----")
+    print(links_comment(item) or "(no links)")
     if INSTAGRAM_ENABLED:
         print(f"\nInstagram image: {thumbnail_url(item)}")
         print("----- Instagram caption -----\n" + instagram_caption(item))
@@ -444,12 +603,36 @@ def find_pco_episode(title: str) -> dict | None:
     return max(matches, key=lambda ep: ep["attributes"].get("published_to_library_at") or "")
 
 
+def make_test_clip(item: dict) -> str:
+    """Builds a short test video (the sermon thumbnail over the first 20
+    seconds of the sermon audio), uploads it to R2 like a real sermon video
+    and returns its R2 key. Used so the test runs through exactly the same
+    upload code as a real Sunday, without needing the original video."""
+    clip = WORKDIR / "test_clip.mp4"
+    thumb = WORKDIR / "test_thumb.png"
+    r = requests.get(thumbnail_url(item), timeout=60)
+    r.raise_for_status()
+    Image.open(io.BytesIO(r.content)).convert("RGB").save(thumb)
+    subprocess.run([
+        "ffmpeg", "-y", "-loop", "1", "-i", str(thumb), "-t", "20", "-i", item["mp3_url"],
+        "-t", "20", "-vf", "scale=1280:-2", "-c:v", "libx264", "-tune", "stillimage",
+        "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(clip),
+    ], check=True, capture_output=True)
+    key = f"raw-uploads/test-{int(time.time())}.mp4"
+    get_r2_client().upload_file(str(clip), env("R2_BUCKET_NAME"), key,
+                                ExtraArgs={"ContentType": "video/mp4"})
+    clip.unlink(missing_ok=True)
+    thumb.unlink(missing_ok=True)
+    return key
+
+
 def test_last_sermon(public: bool = False) -> None:
     """Real end-to-end test using the most recent sermon that has already
-    been through the pipeline: pulls its details from the feed, Planning
-    Center (Church Center link, YouTube link) and Spotify, then makes a
-    HIDDEN Facebook post (only Page admins can see it) and sends the
-    completion email marked [TEST]. Doesn't touch the queue files."""
+    been through the pipeline. Uses a 20-second clip instead of the full
+    video (the original has been deleted), but otherwise runs the same
+    steps as a real Sunday: video upload to Facebook (HIDDEN unless
+    --public), wait for processing, links comment, remove the clip from R2,
+    and the completion email marked [TEST]. Doesn't touch the queue files."""
     latest = sorted(load_episode_log(), key=lambda e: e["pub_date"])[-1]
     print(f"TEST using the latest sermon: {latest['title']} ({latest['pub_date'][:10]})\n")
 
@@ -486,23 +669,44 @@ def test_last_sermon(public: bool = False) -> None:
         sys.exit("\nMETA_PAGE_TOKEN is a personal (user) token, not the Page's token, so Facebook "
                  "won't let it post as the Page. Redo step A4 of SOCIAL_SETUP.md and use the "
                  "access_token shown inside the Harvest Church entry. Nothing was posted or emailed.")
-    item["facebook_result"] = post_to_facebook(item, published=public)
-    if public:
-        print(f"\nPUBLIC Facebook post created: {item['facebook_result']}")
-        print("(Anyone can see it. Check it in a private window, then delete it from the Page if you like.)")
-    else:
-        print(f"\nHidden Facebook post created: {item['facebook_result']}")
-        print("(Only Page admins can see it.)")
+
+    print("\nMaking a 20-second test clip...")
+    item["video_key"] = make_test_clip(item)
+    try:
+        video_id = upload_video_to_facebook(item["video_key"], "[TEST] " + item["title"],
+                                            facebook_description(item), published=public)
+        print(f"Uploaded (video {video_id}). Waiting for Facebook to process it...")
+        deadline = time.time() + VIDEO_READY_WAIT_MINUTES * 60
+        while True:
+            status, link = facebook_video_status(video_id)
+            if status == "ready":
+                break
+            if status == "error":
+                sys.exit("Facebook couldn't process the test video.")
+            if time.time() > deadline:
+                sys.exit(f"Facebook was still processing after {VIDEO_READY_WAIT_MINUTES} minutes. "
+                         f"On a real Sunday the workflow just checks again next run.")
+            time.sleep(20)
+        item["facebook_result"] = link or f"https://www.facebook.com/{video_id}"
+        print(f"{'PUBLIC' if public else 'Hidden'} Facebook video post ready: {item['facebook_result']}")
+
+        post_links_comment(video_id, item)
+        print("Links comment added:\n" + links_comment(item))
+    finally:
+        delete_source_video(item)
 
     send_notification_email(item)
-    print("Test completion email sent (subject starts with [TEST]).")
+    print("\nTest completion email sent (subject starts with [TEST]).")
+    if public:
+        print("The test post is PUBLIC. Check it in a private window, then delete it from the Page.")
 
 
 def main():
     parser = argparse.ArgumentParser(description="Spotify check, social posts and completion email")
     parser.add_argument("--dry-run", action="store_true", help="Check connections and preview posts only")
     parser.add_argument("--test-last-sermon", action="store_true",
-                        help="Facebook post + [TEST] email for the latest sermon (hidden unless --public)")
+                        help="Real test with a 20-second clip of the latest sermon: Facebook video + links "
+                             "comment + [TEST] email (hidden unless --public)")
     parser.add_argument("--public", action="store_true",
                         help="With --test-last-sermon: make the test post public, like a real run")
     args = parser.parse_args()
@@ -545,6 +749,11 @@ def main():
                 )
                 item["gave_up_at"] = datetime.now(timezone.utc).isoformat()
                 finished = True
+                if item.get("video_key") and not item.get("video_deleted"):
+                    try:
+                        delete_source_video(item)
+                    except Exception:
+                        pass
 
         if finished:
             item["finished_at"] = datetime.now(timezone.utc).isoformat()
