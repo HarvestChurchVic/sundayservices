@@ -88,7 +88,8 @@ LINK_LABELS = (
 # Last line of the video's description, pointing people to the comment
 COMMENT_POINTER = "Links to watch or listen on Church Center, Spotify and YouTube are in the comments."
 
-VIDEO_READY_WAIT_MINUTES = 20   # how long the test waits for Facebook to process its clip
+VIDEO_READY_WAIT_MINUTES = 20        # how long the test waits for Facebook to process a short clip
+FULL_VIDEO_READY_WAIT_MINUTES = 40   # ...and a full-length test video uploaded through the form
 
 
 # ---------------------------------------------------------------------------
@@ -626,13 +627,16 @@ def make_test_clip(item: dict) -> str:
     return key
 
 
-def test_last_sermon(public: bool = False) -> None:
+def test_last_sermon(public: bool = False, video_key: str = None) -> None:
     """Real end-to-end test using the most recent sermon that has already
-    been through the pipeline. Uses a 20-second clip instead of the full
-    video (the original has been deleted), but otherwise runs the same
-    steps as a real Sunday: video upload to Facebook (HIDDEN unless
-    --public), wait for processing, links comment, remove the clip from R2,
-    and the completion email marked [TEST]. Doesn't touch the queue files."""
+    been through the pipeline. Runs the same steps as a real Sunday: video
+    upload to Facebook (HIDDEN unless --public), wait for processing, links
+    comment, remove the video from R2, and the completion email marked
+    [TEST]. Doesn't touch the queue files.
+
+    video_key: an R2 video uploaded through the form with "Test only"
+    ticked, for a full-length test. Without it, a 20-second clip is made
+    from last Sunday's thumbnail and audio."""
     latest = sorted(load_episode_log(), key=lambda e: e["pub_date"])[-1]
     print(f"TEST using the latest sermon: {latest['title']} ({latest['pub_date'][:10]})\n")
 
@@ -670,13 +674,19 @@ def test_last_sermon(public: bool = False) -> None:
                  "won't let it post as the Page. Redo step A4 of SOCIAL_SETUP.md and use the "
                  "access_token shown inside the Harvest Church entry. Nothing was posted or emailed.")
 
-    print("\nMaking a 20-second test clip...")
-    item["video_key"] = make_test_clip(item)
+    if video_key:
+        print(f"\nUsing the full-length test video uploaded through the form ({video_key})")
+        item["video_key"] = video_key
+        wait_minutes = FULL_VIDEO_READY_WAIT_MINUTES
+    else:
+        print("\nMaking a 20-second test clip...")
+        item["video_key"] = make_test_clip(item)
+        wait_minutes = VIDEO_READY_WAIT_MINUTES
     try:
         video_id = upload_video_to_facebook(item["video_key"], "[TEST] " + item["title"],
                                             facebook_description(item), published=public)
         print(f"Uploaded (video {video_id}). Waiting for Facebook to process it...")
-        deadline = time.time() + VIDEO_READY_WAIT_MINUTES * 60
+        deadline = time.time() + wait_minutes * 60
         while True:
             status, link = facebook_video_status(video_id)
             if status == "ready":
@@ -684,7 +694,7 @@ def test_last_sermon(public: bool = False) -> None:
             if status == "error":
                 sys.exit("Facebook couldn't process the test video.")
             if time.time() > deadline:
-                sys.exit(f"Facebook was still processing after {VIDEO_READY_WAIT_MINUTES} minutes. "
+                sys.exit(f"Facebook was still processing after {wait_minutes} minutes. "
                          f"On a real Sunday the workflow just checks again next run.")
             time.sleep(20)
         item["facebook_result"] = link or f"https://www.facebook.com/{video_id}"
@@ -707,6 +717,8 @@ def main():
     parser.add_argument("--test-last-sermon", action="store_true",
                         help="Real test with a 20-second clip of the latest sermon: Facebook video + links "
                              "comment + [TEST] email (hidden unless --public)")
+    parser.add_argument("--test-video-key", default="",
+                        help="With --test-last-sermon: R2 key of a full-length test video to use")
     parser.add_argument("--public", action="store_true",
                         help="With --test-last-sermon: make the test post public, like a real run")
     args = parser.parse_args()
@@ -715,7 +727,7 @@ def main():
         dry_run()
         return
     if args.test_last_sermon:
-        test_last_sermon(public=args.public)
+        test_last_sermon(public=args.public, video_key=args.test_video_key.strip() or None)
         return
 
     pending = load_json(PENDING_FILE, [])

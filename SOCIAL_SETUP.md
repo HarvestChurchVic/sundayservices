@@ -57,7 +57,7 @@ You need to be an admin of the Harvest Facebook Page.
 8. **Add the posting permissions:**
    - On the dashboard, click **Use cases** in the left menu (or find the use case on the **Dashboard** page).
    - Next to **Manage everything on your Page**, click **Customize**.
-   - In the permissions list, click **Add** next to `pages_manage_posts`, `pages_read_engagement` and `pages_manage_engagement`. (`pages_show_list` and `business_management` are already included.) `pages_manage_engagement` is what lets the Page add the links comment.
+   - In the permissions list, click **Add** next to `pages_manage_posts`, `pages_read_engagement`, `pages_manage_engagement` and `pages_read_user_content`. (`pages_show_list` and `business_management` are already included.) `pages_manage_engagement` is what lets the Page add the links comment, and it needs `pages_read_user_content` alongside it.
 9. Switch the app to **Live** mode. This matters: while an app is in Development mode, anything it posts can only be seen by people who have a role on the app, so the rest of the world (including other Page admins) won't see the posts.
    - In the left menu, go to **App settings** > **Basic**. Fill in **Privacy policy URL** (the privacy page on harvestchurch.org.au), choose a **Category** (for example "Business and pages"), and click **Save changes**.
    - At the top of the dashboard, flip the **App mode** toggle from **Development** to **Live**. If it lists anything else it needs first, complete those items and try again.
@@ -72,6 +72,7 @@ You need to be an admin of the Harvest Facebook Page.
    - `pages_read_engagement`
    - `pages_manage_posts`
    - `pages_manage_engagement`
+   - `pages_read_user_content`
    - `business_management`
 4. Click **Generate Access Token**. When the Facebook pop-up asks, choose the Harvest Page and allow everything.
 
@@ -109,7 +110,15 @@ Keep `META_PAGE_TOKEN` private. It can post to the Page. Only put it in GitHub s
    - `Instagram: switched off`
    - A preview of the video post's text and of the links comment
 
-**Real test (a 20-second clip of last week's sermon):**
+**Full-length test from the upload form (best for testing Facebook):**
+
+1. Open the sermon upload form and tick **Test only** at the top. The sermon details disappear, because the test uses last Sunday's.
+2. Tick **Make the test post public** if you want to see it exactly as a Sunday post looks. Otherwise only Page admins can see it.
+3. Choose a full-length sermon video, enter the passphrase and click **Upload & Test**.
+4. The video uploads to storage, then the **Publish Social** workflow uploads it to Facebook, waits for processing (often 10 to 40 minutes for a full sermon), adds the links comment, deletes the video from storage and sends a [TEST] email. No sermon is processed and nothing is added to the podcast feed.
+5. Delete the test post from the Page afterwards (it's titled "[TEST] ...").
+
+**Quick test without uploading anything (a 20-second clip of last week's sermon):**
 
 1. **Run workflow** again with **Dry run** unticked and **Real test with last week's sermon** ticked. Leave **PUBLIC** unticked for a hidden post, or tick it to see exactly what a Sunday post looks like (then delete it afterwards).
 2. The log shows the clip being made, uploaded, processed by Facebook, the links comment being added and the clip being removed from storage. A [TEST] completion email follows.
@@ -117,7 +126,7 @@ Keep `META_PAGE_TOKEN` private. It can post to the Page. Only put it in GitHub s
 ## Good to know
 
 - If the Page token ever stops working (for example after a Facebook password change or someone being removed as a Page admin), repeat A2 to A4 and update `META_PAGE_TOKEN`.
-- **If the links comment fails with a permissions error,** the token is missing `pages_manage_engagement`. Add it (A1 step 8 and A2), repeat A2 to A4 and update `META_PAGE_TOKEN`.
+- **If the links comment fails with a permissions error,** the token is missing `pages_manage_engagement`. Add it and `pages_read_user_content` (A1 step 8 and A2), repeat A2 to A4 and update `META_PAGE_TOKEN`.
 - The video's music must be cleared for Facebook (for example from Facebook's or YouTube's royalty-free libraries), or Facebook may mute or block it.
 - GitHub pauses scheduled workflows after 60 days with no commits to the repo. Weekly sermons keep it active. If there's a long break and it's paused, GitHub shows a button on the Actions page to turn it back on.
 - To change the link labels ("Watch on Church Center" etc.) or the 24-hour wait, edit the settings near the top of `social_publisher.py`.
