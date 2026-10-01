@@ -8,6 +8,11 @@ name: Publish Social
 # Run it by hand with "dry_run" ticked to test every connection and preview
 # the posts for the latest episode. A dry run posts and sends nothing.
 on:
+  # Straight after each Process Sermon run, so the video goes up on Facebook
+  # within minutes rather than waiting for the next half-hourly check
+  workflow_run:
+    workflows: ["Process Sermon"]
+    types: [completed]
   schedule:
     - cron: "*/30 * * * *"
   workflow_dispatch:
@@ -17,7 +22,7 @@ on:
         type: boolean
         default: true
       test_last_sermon:
-        description: "Real test with last week's sermon: Facebook post + [TEST] email. Untick Dry run to use this."
+        description: "Real test with a 20-second clip of last week's sermon: Facebook video + links comment + [TEST] email. Untick Dry run to use this."
         type: boolean
         default: false
       test_public:
@@ -33,7 +38,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60   # a multi-GB video upload can take a while
     permissions:
       contents: write
     steps:
@@ -61,6 +66,10 @@ jobs:
       - name: Install Python dependencies
         if: steps.queue.outputs.work == 'yes'
         run: pip install requests boto3 python-dotenv feedgen Pillow
+
+      - name: Install ffmpeg (test only, to make the test clip)
+        if: github.event.inputs.test_last_sermon == 'true' && github.event.inputs.dry_run != 'true'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Run social publisher
         if: steps.queue.outputs.work == 'yes'
