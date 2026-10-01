@@ -29,6 +29,10 @@ on:
         description: "With the real test: make the Facebook post PUBLIC (like next Sunday's) instead of hidden"
         type: boolean
         default: false
+      test_video_key:
+        description: "With the real test: storage location of a full-length test video (filled in automatically by the upload form's 'Test only' option). Leave blank to use a 20-second clip."
+        required: false
+        default: ""
 
 # Never let two runs overlap, or an episode could be posted twice.
 concurrency:
@@ -68,7 +72,7 @@ jobs:
         run: pip install requests boto3 python-dotenv feedgen Pillow
 
       - name: Install ffmpeg (test only, to make the test clip)
-        if: github.event.inputs.test_last_sermon == 'true' && github.event.inputs.dry_run != 'true'
+        if: github.event.inputs.test_last_sermon == 'true' && github.event.inputs.dry_run != 'true' && github.event.inputs.test_video_key == ''
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Run social publisher
@@ -92,14 +96,15 @@ jobs:
           META_PAGE_TOKEN: ${{ secrets.META_PAGE_TOKEN }}
           # Instagram is switched off for now (see INSTAGRAM_ENABLED in social_publisher.py)
           # INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          TEST_VIDEO_KEY: ${{ github.event.inputs.test_video_key }}
         run: |
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             python social_publisher.py --dry-run
           elif [ "${{ github.event.inputs.test_last_sermon }}" = "true" ]; then
             if [ "${{ github.event.inputs.test_public }}" = "true" ]; then
-              python social_publisher.py --test-last-sermon --public
+              python social_publisher.py --test-last-sermon --public --test-video-key "$TEST_VIDEO_KEY"
             else
-              python social_publisher.py --test-last-sermon
+              python social_publisher.py --test-last-sermon --test-video-key "$TEST_VIDEO_KEY"
             fi
           else
             python social_publisher.py
