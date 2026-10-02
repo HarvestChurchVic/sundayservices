@@ -63,34 +63,37 @@ You need to be an admin of the Harvest Facebook Page.
    - At the top of the dashboard, flip the **App mode** toggle from **Development** to **Live**. If it lists anything else it needs first, complete those items and try again.
    - Because the app only ever posts to a Page you manage, it doesn't need Meta's App Review.
 
-**A2. Get a token**
+**A2 to A4: Get the Page token**
+
+You'll handle three different tokens here. Only the third one goes into GitHub.
+
+**A2. Token 1: short-lived personal token**
 
 1. Go to https://developers.facebook.com/tools/explorer
 2. On the right, set **Meta App** to `Harvest Sermon Poster` and **User or Page** to **User Token**.
-3. Under **Permissions**, add all of these:
+3. Under **Permissions**, make sure all of these are listed:
    - `pages_show_list`
+   - `business_management`
    - `pages_read_engagement`
    - `pages_manage_posts`
    - `pages_manage_engagement`
    - `pages_read_user_content`
-   - `business_management`
-4. Click **Generate Access Token**. When the Facebook pop-up asks, choose the Harvest Page and allow everything.
+4. Click **Generate Access Token** and approve the pop-up for the Harvest Church Page.
+5. Copy the token from the **Access Token** box.
 
-**A3. Make the token long-lived**
+**A3. Token 2: long-lived personal token (still not the one for GitHub)**
 
-1. Copy the token from the Explorer's **Access Token** box.
-2. Go to https://developers.facebook.com/tools/debug/accesstoken, paste the token and click **Debug**.
-3. At the bottom, click **Extend Access Token** (enter your password if it asks). Copy the new, longer token.
+1. Go to https://developers.facebook.com/tools/debug/accesstoken, paste token 1 and click **Debug**.
+2. At the bottom, click **Extend Access Token** (enter your password if it asks). Copy the new, longer token.
 
-**A4. Get the Page token and ID**
+**A4. Token 3: the Page token (this is the one for GitHub)**
 
-1. Back in the Graph API Explorer, paste the long token into the **Access Token** box. Replace what's there.
-2. In the query box, enter:
-   `me/accounts?fields=id,name,access_token`
-3. Click **Submit**. Find the Harvest Page in the results and copy:
+1. Back in the Graph API Explorer, click in the **Access Token** box, delete what's there and paste token 2. This step is easy to miss: clicking **Generate Access Token** again would overwrite it with a short-lived one.
+2. Leave the method as **GET**, enter `me/accounts?fields=id,name,access_token` in the query box and click **Submit**.
+3. In the results, find the block with `"name": "Harvest Church"`. Inside that block copy:
    - `id` → this is `META_PAGE_ID`
-   - `access_token` → this is `META_PAGE_TOKEN`. It must be the `access_token` that sits **inside the Harvest Church entry** in the results, not the token in the Explorer's Access Token box at the top (that one is your personal token, and Facebook won't let it post as the Page).
-4. Check: paste the `META_PAGE_TOKEN` into the Access Token Debugger (https://developers.facebook.com/tools/debug/accesstoken). **Type** should say **Page** and **Expires** should say **Never**.
+   - `access_token` → this is `META_PAGE_TOKEN`
+4. **Check it before saving:** paste token 3 into the Access Token Debugger. It must show **Type: Page** (if it says User, it's the wrong token), **Expires: Never** (if it shows a date, token 2 wasn't used in step 1), and **Scopes** including `pages_manage_engagement`.
 
 Keep `META_PAGE_TOKEN` private. It can post to the Page. Only put it in GitHub secrets. This repo is public and its workflow logs can be seen by anyone, so never paste the token into a workflow input or a file.
 
@@ -125,7 +128,7 @@ Keep `META_PAGE_TOKEN` private. It can post to the Page. Only put it in GitHub s
 
 ## Good to know
 
-- If the Page token ever stops working (for example after a Facebook password change or someone being removed as a Page admin), repeat A2 to A4 and update `META_PAGE_TOKEN`.
+- If the Page token ever stops working (for example after a Facebook password change or someone being removed as a Page admin), repeat A2 to A4 and update `META_PAGE_TOKEN`. The Dry run says `Facebook token: correct type` when it's right.
 - **If the links comment fails with a permissions error,** the token is missing `pages_manage_engagement`. Add it and `pages_read_user_content` (A1 step 8 and A2), repeat A2 to A4 and update `META_PAGE_TOKEN`.
 - The video's music must be cleared for Facebook (for example from Facebook's or YouTube's royalty-free libraries), or Facebook may mute or block it.
 - GitHub pauses scheduled workflows after 60 days with no commits to the repo. Weekly sermons keep it active. If there's a long break and it's paused, GitHub shows a button on the Actions page to turn it back on.
