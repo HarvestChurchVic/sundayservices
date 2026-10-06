@@ -17,7 +17,12 @@
     "pco_episode_url": "https://harvestchurchvic.churchcenter.com/episodes/756446",
     "pco_edit_url": "https://publishing.planningcenteronline.com/sermons/episodes/756446/edit",
     "queued_at": "2026-10-06T00:33:27.911953+00:00",
-    "done": {},
-    "failures": 0
+    "done": {
+      "facebook_post": true
+    },
+    "failures": 0,
+    "facebook_video_id": "1479042150738427",
+    "facebook_comment_target": "1479042150738427",
+    "facebook_result": "https://www.facebook.com/reel/1479042150738427/"
   }
 ]
