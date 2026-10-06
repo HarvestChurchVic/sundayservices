@@ -1,7 +1,9 @@
 name: Publish Social
 
-# Runs straight after each Process Sermon run (checking every minute for up
-# to 30 minutes), then every 10 minutes. If a sermon is waiting in
+# Runs straight after each Process Sermon run and stays on for up to 3 hours
+# (checking every minute at first, then every 5 minutes). There's also a
+# 10-minute schedule as a backstop, but GitHub runs schedules as best effort,
+# often hours apart. If a sermon is waiting in
 # pending_social.json it uploads the video to Facebook, waits for Facebook to
 # process it and for Spotify to list the episode, then adds the links comment
 # and sends the completion email. If nothing is queued the run finishes in a
@@ -46,7 +48,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 60   # a multi-GB video upload can take a while
+    timeout-minutes: 240  # a big video upload, then up to 3 hours waiting for Facebook and Spotify
     permissions:
       contents: write
     steps:
@@ -111,7 +113,7 @@ jobs:
               python social_publisher.py --test-last-sermon --test-video-key "$TEST_VIDEO_KEY"
             fi
           elif [ "${{ github.event_name }}" = "workflow_run" ]; then
-            python social_publisher.py --wait-minutes 30
+            python social_publisher.py --wait-minutes 180
           else
             python social_publisher.py
           fi
@@ -124,11 +126,20 @@ jobs:
           git add pending_social.json
           if [ -f social_history.json ]; then git add social_history.json; fi
           git diff --staged --quiet && exit 0
-          git commit -m "Social publisher update"
+          # Keep this run's copies, then merge them onto GitHub's latest
+          # version (another sermon may have been queued during this run)
+          cp pending_social.json "$RUNNER_TEMP/pending.json"
+          cp social_history.json "$RUNNER_TEMP/history.json" 2>/dev/null || echo "[]" > "$RUNNER_TEMP/history.json"
           for i in 1 2 3 4 5; do
+            git fetch -q origin main
+            git reset -q --hard origin/main
+            python3 merge_queue.py "$RUNNER_TEMP/pending.json" "$RUNNER_TEMP/history.json"
+            git add pending_social.json social_history.json
+            git diff --staged --quiet && exit 0
+            git commit -q -m "Social publisher update"
             git push && exit 0
             echo "Push rejected (probably a concurrent run), retrying ($i/5)..."
-            git pull --rebase
+            sleep 5
           done
           echo "::error::Failed to save the social queue after retries. Check pending_social.json by hand so nothing is posted twice."
           exit 1

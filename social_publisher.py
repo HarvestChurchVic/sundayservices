@@ -5,8 +5,9 @@ Harvest Church: Facebook video, links comment, Spotify check and completion emai
 pipeline.py doesn't send the completion email straight away. It adds the new
 episode to pending_social.json instead, and leaves the uploaded sermon video
 in R2. This script is run by the "Publish Social" GitHub Actions workflow
-(straight after each Process Sermon run, checking every minute for up to 30
-minutes, then every 10 minutes on a schedule). For each
+(straight after each Process Sermon run, staying on for up to 3 hours to
+check every minute, then every 5 minutes; plus a 10-minute schedule that
+GitHub runs as best effort). For each
 queued episode it:
 
   1. Uploads the full sermon video to the Facebook Page straight away, with
@@ -73,7 +74,12 @@ BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 SPOTIFY_WAIT_HOURS = 24      # after this, post anyway without the Spotify link
 SPOTIFY_DATE_WINDOW_DAYS = 3  # Spotify release date must be this close to the sermon date
 MAX_FAILURES = 18             # failed runs (10 min apart, so about 3 hours) before giving up on an episode
-WAIT_INTERVAL_SECONDS = 60    # how often to check again with --wait-minutes
+# With --wait-minutes (straight after an upload): check every minute for the
+# first FAST_CHECK_MINUTES, then every 5 minutes, and 10 minutes after a failure
+WAIT_INTERVAL_SECONDS = 60
+FAST_CHECK_MINUTES = 30
+SLOW_INTERVAL_SECONDS = 300
+FAILURE_RETRY_SECONDS = 600
 
 # Instagram posting is switched off for now. All the Instagram code is still
 # here. To turn it back on: change this to True, add the INSTAGRAM_USER_ID
@@ -738,27 +744,49 @@ def main():
         print("Nothing queued.")
         return
 
-    # Straight after an upload, keep checking every minute rather than
-    # leaving it to the next scheduled run, so the links comment and email
-    # go out within a minute or two of Facebook and Spotify being ready.
-    deadline = time.time() + args.wait_minutes * 60
+    # Straight after an upload, keep checking here rather than leaving it to
+    # the scheduled runs, which GitHub treats as best effort (in practice
+    # they often run hours apart). Every minute at first, then less often,
+    # so the links comment and email go out soon after Facebook and Spotify
+    # are ready.
+    start = time.time()
+    deadline = start + args.wait_minutes * 60
     while True:
         failures_before = sum(i.get("failures", 0) for i in load_json(PENDING_FILE, []))
         remaining = process_queue()
         if not remaining:
             return
+        if queue_changed_on_github():
+            # Another sermon was queued meanwhile. Stop here so this run can
+            # save its progress, and the run waiting behind it takes over.
+            print("Another sermon has been queued. Handing over to the next run.")
+            return
         failures_after = sum(i.get("failures", 0) for i in remaining)
         if failures_after > failures_before:
-            # Something failed: leave the retry to the scheduled runs, so
-            # failures stay spaced out and don't use up MAX_FAILURES at once
-            print("A step failed this pass. The scheduled runs will retry it.")
-            return
-        if time.time() + WAIT_INTERVAL_SECONDS > deadline:
+            pause = FAILURE_RETRY_SECONDS   # keep retries spaced out
+        elif time.time() - start < FAST_CHECK_MINUTES * 60:
+            pause = WAIT_INTERVAL_SECONDS
+        else:
+            pause = SLOW_INTERVAL_SECONDS
+        if time.time() + pause > deadline:
             if args.wait_minutes:
                 print(f"Still waiting after {args.wait_minutes} minutes. The scheduled runs will carry on.")
             return
-        print(f"Checking again in {WAIT_INTERVAL_SECONDS} seconds...")
-        time.sleep(WAIT_INTERVAL_SECONDS)
+        print(f"Checking again in {pause // 60} minute(s)...")
+        time.sleep(pause)
+
+
+def queue_changed_on_github() -> bool:
+    """True if pending_social.json on GitHub has changed since this run
+    started (a new sermon was queued). Only works inside a git checkout."""
+    try:
+        subprocess.run(["git", "fetch", "-q", "origin", "main"], cwd=WORKDIR,
+                       check=True, capture_output=True, timeout=60)
+        diff = subprocess.run(["git", "diff", "--quiet", "HEAD", "origin/main", "--",
+                               "pending_social.json"], cwd=WORKDIR, capture_output=True)
+        return diff.returncode == 1
+    except Exception:
+        return False
 
 
 def process_queue() -> list[dict]:

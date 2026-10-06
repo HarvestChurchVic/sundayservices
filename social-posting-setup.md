@@ -11,7 +11,7 @@ The pipeline no longer emails you as soon as it finishes. The new process is:
 5. Create Planning Center episode
 6. Update the RSS feed (Spotify, Apple etc.)
 7. Queue the episode in `pending_social.json`
-8. The **Publish Social** workflow checks every minute for the first 30 minutes, then every 10 minutes, for the episode on Spotify (same title, released within 3 days of the sermon date)
+8. The **Publish Social** workflow stays on after the upload and checks for the episode on Spotify every minute for 30 minutes, then every 5 minutes for up to 3 hours, then on a backup schedule (same title, released within 3 days of the sermon date)
 9. Once it's on Spotify:
    - **Facebook Page post:** the Church Center episode is the main part of the post, shown as a large preview card with its title and artwork. Above it, the blurb, then links in this order: Church Center, Spotify, YouTube. No hashtags.
    - **Completion email:** everything it had before, plus the public Church Center link, the Spotify episode link and the Facebook post link. Its instructions now end with a step to share the Facebook post into the Harvest Church Group, with the link included.

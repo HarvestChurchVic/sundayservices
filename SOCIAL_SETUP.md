@@ -13,7 +13,7 @@ The pipeline no longer emails you as soon as it finishes. The process is now:
 7. Queue the episode in `pending_social.json`. The uploaded video is kept in storage (R2) for now.
 8. The **Publish Social** workflow runs straight away and uploads the **full sermon video** to the Harvest Church Facebook Page. The post's text is the blurb (no hashtags), ending with "Links to watch or listen on Church Center, Spotify and YouTube are in the comments."
 9. Once Facebook has processed the video, it's deleted from storage.
-10. The workflow checks Spotify every minute for the first 30 minutes, then every 10 minutes, for the episode (same title, released within 3 days of the sermon date).
+10. The workflow stays on after the upload and checks for the episode on Spotify every minute for the first 30 minutes, then every 5 minutes for up to 3 hours. After that a backup schedule keeps checking, though GitHub only runs it every few hours in practice. It looks for the episode (same title, released within 3 days of the sermon date).
 11. Once it's on Spotify:
     - **Links comment:** the Page comments on its own video post with the links, in this order: Church Center, Spotify, YouTube.
     - **Completion email:** everything it had before, plus the public Church Center link, the Spotify episode link and the Facebook post link. Its last step is to share the Facebook post into the Harvest Church Group, with the link included.
