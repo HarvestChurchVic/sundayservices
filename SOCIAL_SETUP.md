@@ -13,7 +13,7 @@ The pipeline no longer emails you as soon as it finishes. The process is now:
 7. Queue the episode in `pending_social.json`. The uploaded video is kept in storage (R2) for now.
 8. The **Publish Social** workflow runs straight away and uploads the **full sermon video** to the Harvest Church Facebook Page. The post's text is the blurb (no hashtags), ending with "Links to watch or listen on Church Center, Spotify and YouTube are in the comments."
 9. Once Facebook has processed the video, it's deleted from storage.
-10. Every 30 minutes the workflow checks Spotify for the episode (same title, released within 3 days of the sermon date).
+10. The workflow checks Spotify every minute for the first 30 minutes, then every 10 minutes, for the episode (same title, released within 3 days of the sermon date).
 11. Once it's on Spotify:
     - **Links comment:** the Page comments on its own video post with the links, in this order: Church Center, Spotify, YouTube.
     - **Completion email:** everything it had before, plus the public Church Center link, the Spotify episode link and the Facebook post link. Its last step is to share the Facebook post into the Harvest Church Group, with the link included.
@@ -28,7 +28,7 @@ Instagram posting is built but **switched off** for now. See "Turning Instagram 
 **Safety nets**
 
 - **Spotify never shows the episode:** after 24 hours the links comment and email go out anyway, without a Spotify link. The email says when this has happened.
-- **Something fails** (upload, Facebook's processing, or the comment): the next run tries that step again. Nothing is posted twice and only one email is sent. After 6 failed tries the email goes out anyway with the failure noted, and the video is removed from storage.
+- **Something fails** (upload, Facebook's processing, or the comment): the next run tries that step again. Nothing is posted twice and only one email is sent. After 18 failed tries (about 3 hours) the email goes out anyway with the failure noted, and the video is removed from storage.
 
 ## One-off setup
 

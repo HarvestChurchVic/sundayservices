@@ -1,20 +1,24 @@
 name: Publish Social
 
-# Runs every 30 minutes. If a sermon is waiting in pending_social.json it
-# checks Spotify for the episode, and once it's there posts to Facebook and
-# Instagram and sends the completion email. If nothing is queued the run
-# finishes in a few seconds without doing anything.
+# Runs straight after each Process Sermon run (checking every minute for up
+# to 30 minutes), then every 10 minutes. If a sermon is waiting in
+# pending_social.json it uploads the video to Facebook, waits for Facebook to
+# process it and for Spotify to list the episode, then adds the links comment
+# and sends the completion email. If nothing is queued the run finishes in a
+# few seconds without doing anything.
 #
 # Run it by hand with "dry_run" ticked to test every connection and preview
 # the posts for the latest episode. A dry run posts and sends nothing.
 on:
   # Straight after each Process Sermon run, so the video goes up on Facebook
-  # within minutes rather than waiting for the next half-hourly check
+  # straight away rather than waiting for the next scheduled check
   workflow_run:
     workflows: ["Process Sermon"]
     types: [completed]
   schedule:
-    - cron: "*/30 * * * *"
+    # Every 10 minutes, offset from the hour (3, 13, 23... past) because
+    # GitHub delays scheduled runs that start on the hour
+    - cron: "3-59/10 * * * *"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -106,6 +110,8 @@ jobs:
             else
               python social_publisher.py --test-last-sermon --test-video-key "$TEST_VIDEO_KEY"
             fi
+          elif [ "${{ github.event_name }}" = "workflow_run" ]; then
+            python social_publisher.py --wait-minutes 30
           else
             python social_publisher.py
           fi

@@ -14,7 +14,7 @@ by hand) and does everything from there automatically:
   6. Add a new <item> to the podcast RSS feed and re-upload it
   7. Create the Planning Center Publishing episode
   8. Queue the episode in pending_social.json. social_publisher.py (run
-     every 30 minutes by the "Publish Social" workflow) then waits for it
+     every 10 minutes by the "Publish Social" workflow) then waits for it
      to appear on Spotify, posts to Facebook and Instagram, and emails you
      the blurb and every link
 
@@ -796,7 +796,7 @@ def main():
     # The completion email is NOT sent here any more. Spotify takes a while
     # to pick up a new episode from the RSS feed, so the episode is queued in
     # pending_social.json instead. The "Publish Social" workflow checks the
-    # queue every 30 minutes, and once the episode shows up on Spotify it
+    # queue every 10 minutes, and once the episode shows up on Spotify it
     # posts to Facebook and Instagram and sends the completion email with
     # every link included (see social_publisher.py).
     queue_for_social({

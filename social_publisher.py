@@ -5,7 +5,8 @@ Harvest Church: Facebook video, links comment, Spotify check and completion emai
 pipeline.py doesn't send the completion email straight away. It adds the new
 episode to pending_social.json instead, and leaves the uploaded sermon video
 in R2. This script is run by the "Publish Social" GitHub Actions workflow
-(straight after each Process Sermon run, then every 30 minutes). For each
+(straight after each Process Sermon run, checking every minute for up to 30
+minutes, then every 10 minutes on a schedule). For each
 queued episode it:
 
   1. Uploads the full sermon video to the Facebook Page straight away, with
@@ -71,7 +72,8 @@ BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/140.0 Safari/537.36")
 SPOTIFY_WAIT_HOURS = 24      # after this, post anyway without the Spotify link
 SPOTIFY_DATE_WINDOW_DAYS = 3  # Spotify release date must be this close to the sermon date
-MAX_FAILURES = 6              # failed runs (30 min apart) before giving up on an episode
+MAX_FAILURES = 18             # failed runs (10 min apart, so about 3 hours) before giving up on an episode
+WAIT_INTERVAL_SECONDS = 60    # how often to check again with --wait-minutes
 
 # Instagram posting is switched off for now. All the Instagram code is still
 # here. To turn it back on: change this to True, add the INSTAGRAM_USER_ID
@@ -721,6 +723,8 @@ def main():
                         help="With --test-last-sermon: R2 key of a full-length test video to use")
     parser.add_argument("--public", action="store_true",
                         help="With --test-last-sermon: make the test post public, like a real run")
+    parser.add_argument("--wait-minutes", type=int, default=0,
+                        help="Keep checking every minute for up to this long (used straight after an upload)")
     args = parser.parse_args()
 
     if args.dry_run:
@@ -730,11 +734,37 @@ def main():
         test_last_sermon(public=args.public, video_key=args.test_video_key.strip() or None)
         return
 
-    pending = load_json(PENDING_FILE, [])
-    if not pending:
+    if not load_json(PENDING_FILE, []):
         print("Nothing queued.")
         return
 
+    # Straight after an upload, keep checking every minute rather than
+    # leaving it to the next scheduled run, so the links comment and email
+    # go out within a minute or two of Facebook and Spotify being ready.
+    deadline = time.time() + args.wait_minutes * 60
+    while True:
+        failures_before = sum(i.get("failures", 0) for i in load_json(PENDING_FILE, []))
+        remaining = process_queue()
+        if not remaining:
+            return
+        failures_after = sum(i.get("failures", 0) for i in remaining)
+        if failures_after > failures_before:
+            # Something failed: leave the retry to the scheduled runs, so
+            # failures stay spaced out and don't use up MAX_FAILURES at once
+            print("A step failed this pass. The scheduled runs will retry it.")
+            return
+        if time.time() + WAIT_INTERVAL_SECONDS > deadline:
+            if args.wait_minutes:
+                print(f"Still waiting after {args.wait_minutes} minutes. The scheduled runs will carry on.")
+            return
+        print(f"Checking again in {WAIT_INTERVAL_SECONDS} seconds...")
+        time.sleep(WAIT_INTERVAL_SECONDS)
+
+
+def process_queue() -> list[dict]:
+    """One pass over the queue. Saves progress straight away and returns the
+    items still waiting."""
+    pending = load_json(PENDING_FILE, [])
     try:
         spotify_episodes = spotify_recent_episodes()
     except Exception as e:
@@ -775,6 +805,7 @@ def main():
 
     save_json(PENDING_FILE, still_pending)
     save_json(HISTORY_FILE, history)
+    return still_pending
 
 
 if __name__ == "__main__":
