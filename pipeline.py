@@ -7,11 +7,13 @@ by hand) and does everything from there automatically:
 
   1. Download the MP4
   2. Extract MP3 audio
-  3. Transcribe with Whisper (replaces manual tactiq.io step)
+  3. Transcribe with Whisper (replaces manual tactiq.io step), also saving
+     a time-coded caption file (WebVTT) for podcast apps
   4. Generate a YouTube blurb with the Claude API (replaces manual copy/paste
      into Claude chat)
   5. Upload MP4 + MP3 to Cloudflare R2
-  6. Add a new <item> to the podcast RSS feed and re-upload it
+  6. Add a new <item> to the podcast RSS feed, linking the caption file
+     with a <podcast:transcript> tag, and re-upload it
   7. Create the Planning Center Publishing episode
   8. Queue the episode in pending_social.json. social_publisher.py (run
      every 10 minutes by the "Publish Social" workflow) then waits for it
@@ -109,15 +111,67 @@ def download_and_extract(youtube_url: str, slug: str, source_key: str = None) ->
 # Step 3: transcription (local Whisper — replaces tactiq.io)
 # ---------------------------------------------------------------------------
 
-def transcribe(mp3_path: Path) -> str:
+def transcribe(mp3_path: Path, vtt_path: Path = None) -> str:
+    """Returns the transcript as plain text. If vtt_path is given, also
+    writes a time-coded caption file (WebVTT) there for podcast apps."""
     from faster_whisper import WhisperModel
 
     print("Transcribing (this can take a few minutes)...")
     model_size = env("WHISPER_MODEL_SIZE", default="small")
     model = WhisperModel(model_size, device="cpu", compute_type="int8")
-    segments, _ = model.transcribe(str(mp3_path))
+    segments, _ = model.transcribe(str(mp3_path), word_timestamps=vtt_path is not None)
+    segments = list(segments)
     transcript = " ".join(segment.text.strip() for segment in segments)
+    if vtt_path is not None:
+        vtt_path.write_text(segments_to_vtt(segments), encoding="utf-8")
+        print(f"Caption file written: {vtt_path.name}")
     return transcript
+
+
+# Caption cues: short enough to read at a glance as the audio plays
+CUE_MAX_WORDS = 12
+CUE_MAX_SECONDS = 6.0
+
+
+def _vtt_time(seconds: float) -> str:
+    ms = int(round(max(seconds, 0) * 1000))
+    h, ms = divmod(ms, 3_600_000)
+    m, ms = divmod(ms, 60_000)
+    s, ms = divmod(ms, 1000)
+    return f"{h:02d}:{m:02d}:{s:02d}.{ms:03d}"
+
+
+def segments_to_vtt(segments) -> str:
+    """Turns Whisper segments into WebVTT. Uses word timings when available
+    to split long segments into short cues, ending a cue early at the end of
+    a sentence."""
+    cues = []   # (start, end, text)
+    for seg in segments:
+        words = [w for w in (getattr(seg, "words", None) or []) if w.word.strip()]
+        if not words:
+            if seg.text.strip():
+                cues.append((seg.start, seg.end, seg.text.strip()))
+            continue
+        current = []
+        for w in words:
+            current.append(w)
+            text = w.word.strip()
+            if (len(current) >= CUE_MAX_WORDS
+                    or current[-1].end - current[0].start >= CUE_MAX_SECONDS
+                    or (text.endswith((".", "?", "!")) and len(current) >= 3)):
+                cues.append((current[0].start, current[-1].end,
+                             "".join(x.word for x in current).strip()))
+                current = []
+        if current:
+            cues.append((current[0].start, current[-1].end,
+                         "".join(x.word for x in current).strip()))
+
+    lines = ["WEBVTT", ""]
+    for i, (start, end, text) in enumerate(cues, 1):
+        if end <= start:
+            end = start + 0.5
+        lines += [str(i), f"{_vtt_time(start)} --> {_vtt_time(end)}", text, ""]
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -266,6 +320,9 @@ def get_r2_client():
     )
 
 
+mimetypes.add_type("text/vtt", ".vtt")
+
+
 def upload_to_r2(local_path: Path, key: str) -> str:
     client = get_r2_client()
     bucket = env("R2_BUCKET_NAME")
@@ -379,6 +436,38 @@ the duplicate check matches on title and date together.
         server.send_message(msg)
 
 
+PODCAST_NS = "https://podcastindex.org/namespace/1.0"
+
+
+def add_transcript_tags(feed_path: Path, episodes: list[dict]) -> None:
+    """Adds a <podcast:transcript> tag to each episode that has a caption
+    file, so Apple Podcasts and other apps can show the transcript.
+    feedgen doesn't support this tag, so it's added to the finished XML."""
+    from lxml import etree
+
+    with_transcripts = {ep["mp3_url"]: ep["transcript_url"]
+                        for ep in episodes if ep.get("transcript_url")}
+    if not with_transcripts:
+        return
+    tree = etree.parse(str(feed_path))
+    old_root = tree.getroot()
+    # Declare the podcast namespace on <rss> (lxml can't add one to an
+    # existing element, so copy it onto a new root)
+    nsmap = dict(old_root.nsmap)
+    nsmap["podcast"] = PODCAST_NS
+    root = etree.Element(old_root.tag, nsmap=nsmap, attrib=dict(old_root.attrib))
+    root.extend(list(old_root))
+    for item in root.iter("item"):
+        enclosure = item.find("enclosure")
+        url = with_transcripts.get(enclosure.get("url")) if enclosure is not None else None
+        if url:
+            tag = etree.Element(f"{{{PODCAST_NS}}}transcript", url=url, type="text/vtt",
+                                language="en", rel="captions")
+            enclosure.addnext(tag)
+    etree.ElementTree(root).write(str(feed_path), xml_declaration=True,
+                                  encoding="UTF-8")
+
+
 def build_and_upload_feed(episodes: list[dict]) -> str:
     fg = FeedGenerator()
     fg.load_extension("podcast")
@@ -407,6 +496,7 @@ def build_and_upload_feed(episodes: list[dict]) -> str:
 
     feed_path = WORKDIR / "feed.xml"
     fg.rss_file(str(feed_path))
+    add_transcript_tags(feed_path, episodes)
 
     feed_url = upload_to_r2(feed_path, "feed.xml")
     return feed_url
@@ -751,11 +841,19 @@ def main():
         return
 
     mp3_path = download_and_extract(args.youtube_url, slug, source_key=args.source_file)
-    transcript = transcribe(mp3_path)
+    vtt_path = mp3_path.with_suffix(".vtt")
+    transcript = transcribe(mp3_path, vtt_path=vtt_path)
     blurb_parts = generate_blurb(transcript, args.title, speaker_name, recent_episodes=episodes)
 
     mp3_url = upload_to_r2(mp3_path, f"audio/{slug}.mp3")
     image_url = find_episode_image_url(args.source_file)
+    # Caption file for podcast apps (linked from the feed). Not essential,
+    # so a failure here never stops the episode going out.
+    transcript_url = None
+    try:
+        transcript_url = upload_to_r2(vtt_path, f"transcripts/{slug}.vtt")
+    except Exception as e:
+        print(f"Warning: couldn't upload the caption file ({e}). Carrying on without it.")
 
     episodes.append({
         "title": args.title,
@@ -766,6 +864,7 @@ def main():
         "pub_date": datetime.strptime(args.sermon_date, "%Y-%m-%d")
             .replace(tzinfo=timezone.utc).isoformat(),
         "image_url": image_url,
+        "transcript_url": transcript_url,
         "opening_style": blurb_parts["opening_style"],
         "closing_style": blurb_parts["closing_style"],
     })
