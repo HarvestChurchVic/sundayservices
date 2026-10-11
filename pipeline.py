@@ -37,9 +37,11 @@ import re
 import smtplib
 import subprocess
 import sys
+import uuid
 from datetime import datetime, timezone
 from email.mime.text import MIMEText
 from pathlib import Path
+from urllib.parse import quote, urlsplit, urlunsplit
 
 import boto3
 from botocore.client import Config as BotoConfig
@@ -445,7 +447,8 @@ def add_transcript_tags(feed_path: Path, episodes: list[dict]) -> None:
     feedgen doesn't support this tag, so it's added to the finished XML."""
     from lxml import etree
 
-    with_transcripts = {ep["mp3_url"]: ep["transcript_url"]
+    # Keyed by the cleaned-up link, since that's what's in <enclosure>
+    with_transcripts = {safe_url(ep["mp3_url"]): ep["transcript_url"]
                         for ep in episodes if ep.get("transcript_url")}
     if not with_transcripts:
         return
@@ -468,35 +471,95 @@ def add_transcript_tags(feed_path: Path, episodes: list[dict]) -> None:
                                   encoding="UTF-8")
 
 
+def safe_url(url: str) -> str:
+    """Percent-encodes characters like & and ' in a URL's path, which some
+    podcast apps can't play. Already-encoded characters are left alone."""
+    parts = urlsplit(url)
+    return urlunsplit(parts._replace(path=quote(parts.path, safe="/%-._~")))
+
+
+# Fixed namespace from the Podcasting 2.0 spec for <podcast:guid>
+PODCAST_GUID_NAMESPACE = uuid.UUID("ead4c236-bf58-58c6-a2c6-a6b28d128cb6")
+
+
+def add_podcast_guid(feed_path: Path, feed_url: str) -> None:
+    """Adds <podcast:guid>, the show's permanent ID in the Podcast Index.
+    Per the spec it's a UUIDv5 of the feed URL without the https://, so it
+    stays the same every time the feed is rebuilt."""
+    from lxml import etree
+
+    tree = etree.parse(str(feed_path))
+    root = tree.getroot()
+    if "podcast" not in (root.nsmap or {}):
+        nsmap = dict(root.nsmap)
+        nsmap["podcast"] = PODCAST_NS
+        new_root = etree.Element(root.tag, nsmap=nsmap, attrib=dict(root.attrib))
+        new_root.extend(list(root))
+        root = new_root
+    channel = root.find("channel")
+    bare_url = re.sub(r"^[a-z]+://", "", feed_url).rstrip("/")
+    guid = etree.Element(f"{{{PODCAST_NS}}}guid")
+    guid.text = str(uuid.uuid5(PODCAST_GUID_NAMESPACE, bare_url))
+    first_item = channel.find("item")
+    if first_item is not None:
+        first_item.addprevious(guid)
+    else:
+        channel.append(guid)
+    etree.ElementTree(root).write(str(feed_path), xml_declaration=True,
+                                  encoding="UTF-8")
+
+
 def build_and_upload_feed(episodes: list[dict]) -> str:
+    feed_url = f"{env('R2_PUBLIC_BASE_URL').rstrip('/')}/feed.xml"
+    podcast_author = env("PODCAST_AUTHOR")
+
     fg = FeedGenerator()
     fg.load_extension("podcast")
     fg.title(env("PODCAST_TITLE"))
-    fg.author({"name": env("PODCAST_AUTHOR")})
-    fg.podcast.itunes_author(env("PODCAST_AUTHOR"))
+    fg.author({"name": podcast_author})
+    fg.podcast.itunes_author(podcast_author)
     fg.description(env("PODCAST_DESCRIPTION"))
+    # The feed's own address (some apps use it to find the feed). It must
+    # come before the website link, or feedgen uses it as the show's <link>.
+    fg.link(href=feed_url, rel="self", type="application/rss+xml")
     fg.link(href=env("PODCAST_WEBSITE"), rel="alternate")
     fg.language(env("PODCAST_LANGUAGE", default="en-au"))
+    fg.copyright(f"© {datetime.now(timezone.utc).year} {podcast_author}")
     fg.podcast.itunes_image(env("PODCAST_IMAGE_URL"))
-    fg.podcast.itunes_category(env("PODCAST_CATEGORY", default="Religion & Spirituality"))
+    fg.podcast.itunes_category(
+        env("PODCAST_CATEGORY", default="Religion & Spirituality"),
+        env("PODCAST_SUBCATEGORY", required=False, default="Christianity") or None,
+    )
     fg.podcast.itunes_explicit(
         "yes" if env("PODCAST_EXPLICIT", default="false").lower() == "true" else "no"
     )
+    fg.podcast.itunes_type("episodic")
+    # Owner email: Amazon Music, iHeart and others send a verification code
+    # here to confirm the show is ours. It's public in the feed.
+    owner_email = env("PODCAST_OWNER_EMAIL", required=False)
+    if owner_email:
+        fg.podcast.itunes_owner(name=podcast_author, email=owner_email.strip())
+    else:
+        print("Warning: PODCAST_OWNER_EMAIL isn't set, so the feed has no owner email.")
 
     for ep in sorted(episodes, key=lambda e: e["pub_date"]):
         fe = fg.add_entry()
+        # The ID must never change, or apps treat the episode as new and
+        # list it twice. So it stays the original URL, even where the
+        # playable link below gets cleaned up.
         fe.id(ep["mp3_url"])
         fe.title(ep["title"])
         fe.description(ep["blurb"])
-        fe.enclosure(ep["mp3_url"], str(ep["filesize"]), "audio/mpeg")
+        fe.enclosure(safe_url(ep["mp3_url"]), str(ep["filesize"]), "audio/mpeg")
         fe.pubDate(ep["pub_date"])
-        fe.podcast.itunes_author(ep.get("speaker", env("PODCAST_AUTHOR")))
+        fe.podcast.itunes_author(ep.get("speaker") or podcast_author)
         if ep.get("image_url"):
-            fe.podcast.itunes_image(ep["image_url"])
+            fe.podcast.itunes_image(safe_url(ep["image_url"]))
 
     feed_path = WORKDIR / "feed.xml"
     fg.rss_file(str(feed_path))
     add_transcript_tags(feed_path, episodes)
+    add_podcast_guid(feed_path, feed_url)
 
     feed_url = upload_to_r2(feed_path, "feed.xml")
     return feed_url
@@ -803,7 +866,9 @@ def extract_youtube_video_id(url: str) -> str | None:
 
 
 def slugify(text: str) -> str:
-    return "-".join(text.lower().split())[:60]
+    """Turns a title into a safe file name: letters, numbers and dashes only.
+    (Characters like & and ' in file names broke playback in some apps.)"""
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:60].rstrip("-")
 
 
 def main():

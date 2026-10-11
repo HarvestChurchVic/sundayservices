@@ -87,6 +87,8 @@ jobs:
           PODCAST_IMAGE_URL: ${{ secrets.PODCAST_IMAGE_URL }}
           PODCAST_LANGUAGE: en-au
           PODCAST_CATEGORY: "Religion & Spirituality"
+          PODCAST_SUBCATEGORY: "Christianity"
+          PODCAST_OWNER_EMAIL: ${{ secrets.PODCAST_OWNER_EMAIL }}
           PODCAST_EXPLICIT: "false"
           PODCAST_WEBSITE: ${{ secrets.PODCAST_WEBSITE }}
         run: |
