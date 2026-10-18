@@ -112,7 +112,7 @@ const FORM_HTML = `<!DOCTYPE html>
   </label>
 
   <label>YouTube link <span class="hint">(optional, if already published)</span>
-    <input type="text" id="youtubeUrl">
+    <input type="text" id="youtubeUrl" autocomplete="off" placeholder="https://youtu.be/...">
   </label>
 
   </div>
@@ -195,6 +195,18 @@ async function loadSeries() {
 }
 loadSeries();
 
+// The YouTube box is optional, but if it's filled in it must be a YouTube
+// video link. (On 18 Oct 2026 it held this form's own address, and Planning
+// Center refused the episode.)
+function isYouTubeLink(value) {
+  try {
+    const host = new URL(value).hostname.toLowerCase().replace(/^(www|m)[.]/, "");
+    return host === "youtu.be" || host === "youtube.com";
+  } catch (e) {
+    return false;
+  }
+}
+
 function setStatus(message, type) {
   statusDiv.textContent = message;
   statusDiv.className = type;
@@ -228,7 +240,7 @@ form.addEventListener("submit", async (e) => {
   const guestName = speaker === "Guest Speaker" ? guestNameInput.value.trim() : "";
   const seriesId = document.getElementById("series").value;
   const sermonDate = document.getElementById("sermonDate").value;
-  const youtubeUrl = document.getElementById("youtubeUrl").value;
+  const youtubeUrl = document.getElementById("youtubeUrl").value.trim();
   const videoFile = document.getElementById("videoFile").files[0];
   const thumbnailFile = document.getElementById("thumbnailFile").files[0];
   const passphrase = document.getElementById("passphrase").value;
@@ -276,6 +288,11 @@ form.addEventListener("submit", async (e) => {
   }
   if (!passphrase) {
     setStatus("Error: passphrase is required.", "error");
+    submitBtn.disabled = false;
+    return;
+  }
+  if (youtubeUrl && !isYouTubeLink(youtubeUrl)) {
+    setStatus("Error: the YouTube link doesn't look like a YouTube video link (it should start with https://youtu.be/ or https://www.youtube.com/). Fix it, or leave the box empty if the video isn't on YouTube yet.", "error");
     submitBtn.disabled = false;
     return;
   }

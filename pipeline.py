@@ -740,12 +740,15 @@ def create_planning_center_episode(title: str, speaker: str, sermon_date: str,
     attributes = {
         "title": title,
         "description": blurb,
-        "video_url": video_url,
-        "library_video_url": video_url,
         "library_audio_url": audio_url,
         "published_to_library_at": published_at,
         "stream_type": "prerecorded",
     }
+    # Only send a video link when there is a real one. Planning Center
+    # refuses the whole episode (422) if it's anything else.
+    if video_url:
+        attributes["video_url"] = video_url
+        attributes["library_video_url"] = video_url
     if series_id:
         attributes["series_id"] = series_id
     if art_uuid:
@@ -768,7 +771,18 @@ def create_planning_center_episode(title: str, speaker: str, sermon_date: str,
         json=payload,
         timeout=30,
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        # Planning Center explains what it didn't like in the response body,
+        # so include it rather than just the status code.
+        try:
+            errors = resp.json().get("errors", [])
+            reason = "; ".join(
+                " ".join(str(x) for x in (e.get("title"), e.get("detail"),
+                         (e.get("source") or {}).get("pointer")) if x)
+                for e in errors) or resp.text[:500]
+        except ValueError:
+            reason = resp.text[:500]
+        raise RuntimeError(f"{resp.status_code} from Planning Center: {reason}")
     episode = resp.json()["data"]
     episode_id = episode["id"]
 
@@ -888,6 +902,18 @@ def main():
     args = parser.parse_args()
 
     slug = f"{args.sermon_date}-{slugify(args.title)}"
+
+    # The YouTube link box is optional and easy to fill with the wrong thing
+    # (on 18 Oct 2026 it held the upload form's own address). Planning Center
+    # rejects an episode whose video link isn't a real video, so anything
+    # that isn't a recognisable YouTube link is dropped here and treated as
+    # "not yet published". It then stays out of Planning Center, the
+    # Facebook links comment and the email.
+    args.youtube_url = (args.youtube_url or "").strip()
+    if args.youtube_url and not extract_youtube_video_id(args.youtube_url):
+        print(f"Warning: '{args.youtube_url}' isn't a YouTube video link, so it "
+              f"has been ignored. Add the YouTube link by hand once it's published.")
+        args.youtube_url = ""
 
     # For a guest, the name typed into the form is what appears everywhere
     # (blurb, podcast feed, email, status page). Planning Center still uses
