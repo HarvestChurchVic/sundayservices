@@ -569,6 +569,49 @@ def build_and_upload_feed(episodes: list[dict]) -> str:
 # Step 7: email notification
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Bible App (YouVersion Connect) Post, drafted for the completion email
+# ---------------------------------------------------------------------------
+# YouVersion has no API for church Posts (checked Nov 2026: the developer API
+# only reads Bible text), so the pipeline drafts the Post and a person pastes
+# it into connect.youversion.com. Connect's limits: title 60 characters,
+# body 2000 characters. Only one Post shows at a time, for up to 7 days, and
+# every Post notifies everyone who has set Harvest as their church.
+
+BIBLE_APP_TITLE_MAX = 60
+BIBLE_APP_BODY_MAX = 2000
+BIBLE_APP_LINK_LABELS = ("Watch on Church Center", "Listen on Spotify", "Watch on YouTube")
+
+
+def _fit_title(title: str, limit: int = BIBLE_APP_TITLE_MAX) -> str:
+    title = title.strip()
+    if len(title) <= limit:
+        return title
+    cut = title[: limit - 3].rsplit(" ", 1)[0].rstrip(" ,:;-")
+    return cut + "..."
+
+
+def bible_app_post(context: dict) -> tuple[str, str]:
+    """Returns (title, body) for the Bible App Post, within Connect's limits.
+    Hashtags are left out. Links only appear if they actually exist."""
+    blurb = "\n".join(line for line in context["blurb"].splitlines()
+                      if not line.strip().startswith("#")).strip()
+    links = [context.get("pco_episode_url"), context.get("spotify_url"), context.get("youtube_url")]
+    link_lines = [f"{label}: {url}" for label, url in zip(BIBLE_APP_LINK_LABELS, links)
+                  if url and str(url).startswith("http")]
+    tail = ("\n\n" + "\n".join(link_lines)) if link_lines else ""
+
+    # Drop whole blurb paragraphs from the end if it's ever too long
+    paragraphs = [p for p in blurb.split("\n\n") if p.strip()]
+    body = "\n\n".join(paragraphs) + tail
+    while len(body) > BIBLE_APP_BODY_MAX and len(paragraphs) > 1:
+        paragraphs.pop()
+        body = "\n\n".join(paragraphs) + tail
+    if len(body) > BIBLE_APP_BODY_MAX:
+        body = body[: BIBLE_APP_BODY_MAX - len(tail) - 3].rsplit(" ", 1)[0] + "..." + tail
+    return _fit_title(context["title"]), body
+
+
 def send_notification_email(context: dict) -> None:
     print("Sending notification email...")
 
@@ -592,6 +635,7 @@ def send_notification_email(context: dict) -> None:
         social_lines.append(f"Instagram post: {context['instagram_result']}")
     social_block = "\n".join(social_lines) + "\n\n" if social_lines else ""
     facebook_line = context.get("facebook_result") or "(the Facebook post wasn't created, so share the sermon into the Group by hand)"
+    bible_title, bible_body = bible_app_post(context)
 
     body = f"""CONGRATULATIONS!!!
 
@@ -640,6 +684,20 @@ PLANNING CENTER EPISODE EDIT URL
 
 FACEBOOK POST URL
 {facebook_line}
+
+5. Then post it to the Bible App (YouVersion). Go to the link below, click Create Post, and copy in the title and the post text. Then make the links clickable: highlight each web address in the post and click the link button (the chain icon) in the toolbar. Press Preview to check it, then Post now.
+
+Heads up: only one Post shows in the Bible App at a time, so this replaces whatever is up there now, and everyone who has set Harvest as their church gets a notification. If there's an event notice up that needs to stay, use "Start date and time" to schedule this one for later instead.
+
+
+BIBLE APP POST URL
+https://connect.youversion.com/posts/create
+
+--- Bible App Post title ---
+{bible_title}
+
+--- Bible App Post text ---
+{bible_body}
 
 
 WELL DONE!!
