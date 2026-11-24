@@ -196,5 +196,14 @@
     "detail": "https://hrvstpdcst.com/audio/2026-11-15-dangerous-ground.mp3",
     "run_url": null,
     "timestamp": "2026-11-17T08:27:21.007828+00:00"
+  },
+  {
+    "status": "success",
+    "title": "Soild Ground",
+    "sermon_date": "2026-11-22",
+    "speaker": "Ps Andrew Cartledge",
+    "detail": "https://hrvstpdcst.com/audio/2026-11-22-soild-ground.mp3",
+    "run_url": null,
+    "timestamp": "2026-11-24T23:46:00.784341+00:00"
   }
 ]
